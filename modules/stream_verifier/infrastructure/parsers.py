@@ -1,5 +1,5 @@
 from modules.stream_verifier.domain.lag_report import LagReport
-from shared.result.result import Result
+from shared import Result
 from .utils.utils import LagResponseModel
 
 

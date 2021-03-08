@@ -1,19 +1,19 @@
 import pytest
-from shared.result.result import Result
 from modules.stream_verifier.infrastructure.verifier import StreamVerifier
-from shared.error.client_error import ClientException, ExternalException
+from shared import ClientException, ExternalException, Result
+from core import AlertSystem
+from dependency_injector import providers
 
 
-class MockLagCalculator:
-    def __init__(self, state, stream):
+class MockKafkaService:
+    def __init__(self, state):
         self.state = state
-        self.stream = stream
 
-    def get_lag(self, parser):
+    def get_lag(self, request_model, parser):
         if self.state == "success":
-            return Result.Ok(self.stream)
+            return Result.Ok(request_model)
         if self.state == "check_fail":
-            return Result.Ok(self.stream, check_success=False)
+            return Result.Ok(request_model, check_success=False)
         if self.state == "client_error":
             return Result.Fail(ClientException("fail"))
         if self.state == "external_error":
@@ -21,57 +21,34 @@ class MockLagCalculator:
 
 
 @pytest.fixture
-def success_report():
-    def lag_calculator_factory(stream):
-        return MockLagCalculator("success", stream)
+def verifier():
+    app = AlertSystem()
 
-    yield lag_calculator_factory
+    def _verifier(state):
+        factory = providers.Factory(MockKafkaService, state=state)
+        app.container.kafka_service.override(factory)
+        return app.container.stream_verifier()
 
-
-@pytest.fixture
-def success_report():
-    def lag_calculator_factory(stream):
-        return MockLagCalculator("check_fail", stream)
-
-    yield lag_calculator_factory
-
-
-@pytest.fixture
-def client_error_report():
-    def lag_calculator_factory(stream):
-        return MockLagCalculator("client_error", stream)
-
-    yield lag_calculator_factory
-
-
-@pytest.fixture
-def external_error_report():
-    def lag_calculator_factory(stream):
-        return MockLagCalculator("external_error", stream)
-
-    yield lag_calculator_factory
+    yield _verifier
+    app.container.unwire()
 
 
 class TestLagReport:
-    def test_success_with_check_success(self, success_report):
-        verifier = StreamVerifier(lag_calculator_factory=success_report)
-        result = verifier.get_lag_report([1, 2, 3])
+    def test_success_with_check_success(self, verifier):
+        result = verifier("success").get_lag_report([1, 2, 3])
         assert result.value == [1, 2, 3]
 
-    def test_success_with_check_fail(self, success_report):
-        verifier = StreamVerifier(lag_calculator_factory=success_report)
-        result = verifier.get_lag_report([1, 2, 3])
+    def test_success_with_check_fail(self, verifier):
+        result = verifier("check_fail").get_lag_report([1, 2, 3])
         assert result.value == [1, 2, 3]
         assert not result.check_success
 
-    def test_fail_with_client_error(self, client_error_report):
-        verifier = StreamVerifier(lag_calculator_factory=client_error_report)
-        result = verifier.get_lag_report([1, 2, 3])
+    def test_fail_with_client_error(self, verifier):
+        result = verifier("client_error").get_lag_report([1, 2, 3])
         assert not result.success
         assert type(result.error) == ClientException
 
-    def test_fail_with_external_error(self, external_error_report):
-        verifier = StreamVerifier(lag_calculator_factory=external_error_report)
-        result = verifier.get_lag_report([1, 2, 3])
+    def test_fail_with_external_error(self, verifier):
+        result = verifier("external_error").get_lag_report([1, 2, 3])
         assert not result.success
         assert type(result.error) == ExternalException

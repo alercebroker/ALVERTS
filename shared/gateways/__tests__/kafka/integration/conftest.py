@@ -8,7 +8,7 @@ import pytest
 def docker_compose_file(pytestconfig):
     return os.path.join(
         str(pytestconfig.rootdir),
-        "modules/stream_verifier/infrastructure/__tests__/integration",
+        "shared/gateways/__tests__/kafka/integration",
         "docker-compose.yml",
     )
 
