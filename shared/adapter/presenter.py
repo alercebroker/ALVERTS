@@ -1,5 +1,4 @@
 import abc
-from modules.stream_verifier.domain import LagReport
 
 
 class Presenter(metaclass=abc.ABCMeta):
@@ -20,7 +19,7 @@ class Presenter(metaclass=abc.ABCMeta):
         )
 
     @abc.abstractmethod
-    def export_report(self, report: LagReport):
+    def export_report(self, report):
         raise NotImplementedError
 
     @abc.abstractmethod

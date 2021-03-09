@@ -3,7 +3,7 @@ from confluent_kafka import KafkaException, Consumer
 from modules.stream_verifier.infrastructure import StreamLagParser
 from shared import Result, ClientException, KafkaService
 from modules.stream_verifier.domain.lag_report import LagReport
-from modules.stream_verifier.infrastructure.utils.utils import StreamRequestModel
+from shared.gateways.request_models import StreamRequestModel
 
 
 def consumer_factory(config):
