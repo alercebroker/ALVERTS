@@ -14,15 +14,16 @@ PROFILE = False
 
 
 # KAFKA TOPICS SECTION
-today = datetime.datetime.today().strftime("%Y%m%d")
+yesterday = datetime.datetime.today()
+date = yesterday.strftime("%Y%m%d")
 KAFKA_STREAMS = [
     {
-        "topic": f"ztf_{today}_programid1_aux",
+        "topic": f"ztf_{date}_programid1_aux",
         "bootstrap_servers": "kafka1.alerce.online:9092,kafka2.alerce.online:9092,kafka3.alerce.online:9092",
         "group_id": "ALeRCE_v4_20200330_v1",
     },
     {
-        "topic": f"ztf_{today}_programid1_aux",
+        "topic": f"ztf_{date}_programid1_aux",
         "bootstrap_servers": "kafka1.alerce.online:9092,kafka2.alerce.online:9092,kafka3.alerce.online:9092",
         "group_id": "ALERCE_stamp_classifier_v2_XXX",
     },
