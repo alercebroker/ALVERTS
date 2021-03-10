@@ -14,7 +14,7 @@ PROFILE = False
 
 
 # KAFKA TOPICS SECTION
-yesterday = datetime.datetime.today()
+yesterday = datetime.datetime.today() - datetime.timedelta(1)
 date = yesterday.strftime("%Y%m%d")
 KAFKA_STREAMS = [
     {
