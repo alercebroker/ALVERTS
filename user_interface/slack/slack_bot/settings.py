@@ -43,12 +43,12 @@ KAFKA_STREAMS = [
         "group_id": "lc_classifier_consumer",
     },
     {
-        "topic": f"ztf_{today}_programid1_aux",
+        "topic": f"ztf_{date}_programid1_aux",
         "bootstrap_servers": "10.0.2.14:9092,10.0.2.181:9092,10.0.2.62:9092",
         "group_id": "xmatch_consumer",
     },
     {
-        "topic": f"ztf_{today}_programid1_aux",
+        "topic": f"ztf_{date}_programid1_aux",
         "bootstrap_servers": "10.0.2.14:9092,10.0.2.181:9092,10.0.2.62:9092",
         "group_id": "early_consumer",
     },
