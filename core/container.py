@@ -16,9 +16,9 @@ class ApplicationContainer(containers.DeclarativeContainer):
         KafkaService, consumer_creator=consumer_factory.provider
     )
     stream_verifier = providers.Singleton(StreamVerifier, kafka_service=kafka_service)
-    slack_client = providers.Singleton(WebClient, token=config.slack.token)
+    slack_client = providers.Singleton(WebClient, token=config.slack.SLACK_BOT_TOKEN)
     slack_signature_verifier = providers.Singleton(
-        SignatureVerifier, signing_secret=config.slack.signature
+        SignatureVerifier, signing_secret=config.slack.SLACK_SIGNATURE
     )
     slack_exporter = providers.Singleton(
         SlackExporter,

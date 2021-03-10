@@ -7,13 +7,15 @@ from slack.errors import SlackApiError
 from slack.signature import SignatureVerifier
 
 from user_interface.slack.slack_bot.commands.slash import Slash
-from core import AlertSystem
+from core.alert_system import AlertSystem
+from user_interface.slack.slack_bot import settings
 
 main = Blueprint("slack", __name__, url_prefix="/slack")
 
 
 def create_app():
-    alert_system = AlertSystem()
+    dict_config = settings.ALERT_SYSTEM_CONFIG
+    alert_system = AlertSystem(dict_config)
     app = Flask(__name__)
     app.register_blueprint(main)
     app.alert_system = alert_system
@@ -24,6 +26,11 @@ def create_app():
     )
     app.commander = Slash()
     return app
+
+
+@main.route("/", methods=["GET"])
+def home():
+    return make_response("Hello", 200)
 
 
 @main.route("/last_night_objects", methods=["POST"])
@@ -46,6 +53,7 @@ def command_last_night_objects():
 
 @main.route("/stream_lag_check", methods=["POST"])
 def command_stream_lag_check():
+    print(current_app.alert_system.dict_config)
     slack_controller = current_app.alert_system.get_controller("slack")
     response = make_response()
     slack_controller.get_stream_lag_report(request, response)

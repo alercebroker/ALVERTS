@@ -74,6 +74,6 @@ class SlackController(Controller):
         )
 
     def _get_slack_data(self, request):
-        assert "channel_name" in request.form
-        assert "user_name" in request.form
+        assert request.form.get("channel_name") != None
+        assert request.form.get("user_name") != None
         return request.form

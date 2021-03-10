@@ -1,0 +1,3 @@
+dependency-injector
+confluent-kafka
+git+https://github.com/alercebroker/db-plugins.git
