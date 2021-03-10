@@ -1,9 +1,7 @@
 from confluent_kafka import Consumer, KafkaError, KafkaException
-from modules.stream_verifier.infrastructure.utils.utils import (
-    LagResponseModel,
-    StreamRequestModel,
-)
 from shared import Result, ClientException
+from .request_models import StreamRequestModel
+from .response_models import LagResponseModel
 
 
 class KafkaService:

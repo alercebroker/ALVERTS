@@ -1,6 +1,6 @@
 from .parsers import StreamLagParser
 from modules.stream_verifier.domain import IStreamVerifier
-from .utils.utils import StreamRequestModel
+from shared.gateways.request_models import StreamRequestModel
 from typing import Callable
 from shared import KafkaService, Result
 

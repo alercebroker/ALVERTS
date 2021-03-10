@@ -1,6 +1,6 @@
 from modules.stream_verifier.domain.lag_report import LagReport
 from shared import Result
-from .utils.utils import LagResponseModel
+from shared.gateways.response_models import LagResponseModel
 
 
 class StreamLagParser:

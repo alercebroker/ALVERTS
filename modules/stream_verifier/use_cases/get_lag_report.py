@@ -1,7 +1,7 @@
 from modules.stream_verifier.infrastructure import StreamVerifier
-from modules.stream_verifier.infrastructure.utils.utils import StreamRequestModel
+from shared.gateways.request_models import StreamRequestModel
 from typing import List
-from shared import ClientException, ExternalException, Result
+from shared import ClientException, ExternalException, Result, UseCase
 
 
 class GetLagReport(UseCase):
