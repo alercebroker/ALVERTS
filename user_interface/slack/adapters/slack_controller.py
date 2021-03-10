@@ -69,7 +69,7 @@ class SlackController(Controller):
         topic = data["topic"]
         group_id = data["group_id"]
         bootstrap_servers = data["bootstrap_servers"]
-        StreamRequestModel(
+        return StreamRequestModel(
             bootstrap_servers=bootstrap_servers, group_id=group_id, topic=topic
         )
 
