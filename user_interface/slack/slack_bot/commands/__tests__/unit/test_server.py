@@ -56,9 +56,7 @@ class TestStreamLagCheck:
         )
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#channel",
-            text="""Stream Lag Report Success:
-            topic: test
-            lag: 0""",
+            text="""Stream Lag Report Success\nNo group id has lag""",
         )
 
     def test_should_return_with_check_fail(self, client, app):
@@ -77,9 +75,8 @@ class TestStreamLagCheck:
         )
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#channel",
-            text="""Stream Lag Report Fail:
-            topic: test
-            lag: 10""",
+            text="""Stream Lag Report Fail
+Lag Report: <topic: test, group_id: test, lag: 10>""",
         )
 
     def test_should_return_with_client_error(self, client, app):

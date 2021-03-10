@@ -5,6 +5,6 @@ from shared.gateways.response_models import LagResponseModel
 
 class StreamLagParser:
     def to_report(self, resp: LagResponseModel):
-        report = LagReport(topic=resp.topic, lags=resp.lags)
+        report = LagReport(topic=resp.topic, lags=resp.lags, group_id=resp.group_id)
         success = report.total_lag() == 0
         return Result.Ok(report, check_success=success)

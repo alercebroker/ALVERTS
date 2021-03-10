@@ -10,10 +10,10 @@ class MockStreamVerifier:
 
     def get_lag_report(self, request_models: List[StreamRequestModel]):
         if self.test_type == "success":
-            report = LagReport(topic="test", lags=[0])
+            report = LagReport(topic="test", group_id="test", lags=[0])
             return Result.Ok(report)
         if self.test_type == "check_fail":
-            report = LagReport(topic="test", lags=[0, 10])
+            report = LagReport(topic="test", group_id="test", lags=[0, 10])
             return Result.Ok(report, False)
         if self.test_type == "client_error":
             return Result.Fail(ClientException("fail"))

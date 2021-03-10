@@ -59,7 +59,7 @@ class KafkaService:
         self.consume_one(stream, consumer=consumer)
         partitions = consumer.assignment()
         partition_messages = self.get_messages_per_partition(partitions, consumer)
-        response = LagResponseModel(stream.topic)
+        response = LagResponseModel(stream.topic, stream.group_id)
         positions = consumer.position(partitions)
         if len(positions) == 0:
             return Result.Fail(

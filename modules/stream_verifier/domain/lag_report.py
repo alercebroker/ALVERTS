@@ -1,10 +1,12 @@
 from dataclasses import dataclass
+from typing import List
 
 
 @dataclass
 class LagReport:
     topic: str
-    lags: int
+    group_id: str
+    lags: List[int]
 
     def total_lag(self):
         return sum(self.lags)

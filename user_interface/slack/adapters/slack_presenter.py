@@ -59,12 +59,12 @@ class SlackExporter(Presenter):
     def _parse_lag_report_to_string(
         self, report: Union[List[LagReport], LagReport], state: str
     ):
-        if isinstance(report, LagReport):
-            text = f"""Stream Lag Report {state}:
-            topic: {report.topic}
-            lag: {sum(report.lags)}"""
-        else:
-            text = f"Stream Lag Report {state}\n"
+        if state == "Success":
+            text = f"""Stream Lag Report {state}\nNo group id has lag"""
+        if state == "Fail":
+            if isinstance(report, LagReport):
+                report = [report]
+            text = f"""Stream Lag Report {state}\n"""
             for rep in report:
-                text += f"""topic: {rep.topic}\nlag: {sum(rep.lags)}\n"""
+                text += f"Lag Report: <topic: {rep.topic}, group_id: {rep.group_id}, lag: {rep.total_lag()}>"
         return text
