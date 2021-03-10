@@ -67,6 +67,6 @@ class SlackExporter(Presenter):
             text = "Stream Lag Report {state}"
             for rep in report:
                 text += f"""topic: {report.topic}
-                lag: {sum(report.lags)}"""
+                lag: {sum(rep.lags)}"""
                 text += "\n"
         return text
