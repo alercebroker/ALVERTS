@@ -53,7 +53,6 @@ def command_last_night_objects():
 
 @main.route("/stream_lag_check", methods=["POST"])
 def command_stream_lag_check():
-    print(current_app.alert_system.dict_config)
     slack_controller = current_app.alert_system.get_controller("slack")
     response = make_response()
     slack_controller.get_stream_lag_report(request, response)
