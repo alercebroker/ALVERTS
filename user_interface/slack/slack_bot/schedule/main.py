@@ -1,4 +1,4 @@
-from .bot import ScheduledBot
+from user_interface.slack.slack_bot.schedule.bot import ScheduledBot
 from user_interface.slack.slack_bot.settings import (
     SLACK_SCHEDULE_CONFIG,
     ALERT_SYSTEM_CONFIG,
