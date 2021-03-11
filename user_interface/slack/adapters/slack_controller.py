@@ -61,8 +61,9 @@ class SlackController(Controller):
         try:
             slack_data = self._get_slack_data(request)
         except AssertionError as e:
+            print(request)
             self.exporter.handle_request_error(
-                AssertionError("Wrong slack parameters"), response
+                AssertionError(f"Wrong slack parameters: {e}"), response
             )
             return
 

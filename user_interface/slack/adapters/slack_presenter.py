@@ -21,29 +21,56 @@ class SlackExporter(Presenter):
         self,
         report: Union[List[LagReportResponseModel], LagReportResponseModel],
         slack_data: dict,
-        response: Response,
+        response: Union[Response, dict],
         status: str,
     ):
         channel = slack_data.get("channel_name")
         text = self._parse_lag_report_to_string(report, status)
         post_response = self.client.chat_postMessage(channel=f"#{channel}", text=text)
-        response.status_code = post_response.status_code
+        if isinstance(response, dict):
+            response["status_code"] = post_response.status_code
+        else:
+            response.status_code = post_response.status_code
 
     def handle_client_error(self, error: ClientException, response):
-        response.data = f"Client Error: {error}"
-        response.status_code = 400
+        message = f"Client Error: {error}"
+        code = 400
+        if isinstance(response, dict):
+            response["status_code"] = code
+            response["data"] = message
+        else:
+            response.status_code = code
+            response.data = message
 
     def handle_external_error(self, error: ExternalException, response):
-        response.data = f"External Error: {error}"
-        response.status_code = 500
+        message = f"External Error: {error}"
+        code = 500
+        if isinstance(response, dict):
+            response["status_code"] = code
+            response["data"] = message
+        else:
+            response.status_code = code
+            response.data = message
 
     def handle_parse_error(self, error: Exception, response):
-        response.data = f"Parse Error: {error}"
-        response.status_code = 500
+        message = f"Parse Error: {error}"
+        code = 500
+        if isinstance(response, dict):
+            response["status_code"] = code
+            response["data"] = message
+        else:
+            response.status_code = code
+            response.data = message
 
     def handle_request_error(self, error: Exception, response):
-        response.data = f"Request Error: {error}"
-        response.status_code = 400
+        message = f"Request Error: {error}"
+        code = 400
+        if isinstance(response, dict):
+            response["status_code"] = code
+            response["data"] = message
+        else:
+            response.status_code = code
+            response.data = message
 
     def _parse_lag_report_to_string(
         self,

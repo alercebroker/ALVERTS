@@ -51,10 +51,12 @@ class ScheduledBot:
 
     def stream_lag_report(self, channel: str):
         slack_controller = self.alert_system.get_controller("slack")
-        request = {"channel_name": str, "user": "bot"}
-        response = make_response()
+        request = {"channel_name": channel, "user_name": "bot"}
+        response = {"data": "", "status_code": 200}
         slack_controller.get_stream_lag_report(request, response)
-        self.logger.info(f"Report: stream_lag_report, status: { response.status_code }")
+        self.logger.info(
+            f"Report: stream_lag_report, status: { response[ 'status_code' ] }, data: {response['data']}"
+        )
 
     def schedule(self) -> List:
         self.logger.info("Scheduling messages")
