@@ -63,7 +63,7 @@ class SlackController(Controller):
         except AssertionError as e:
             print(request)
             self.exporter.handle_request_error(
-                AssertionError(f"Wrong slack parameters: {e}"), response
+                AssertionError(f"Wrong slack parameters"), response
             )
             return
 
@@ -95,7 +95,7 @@ class SlackController(Controller):
         )
 
     def _get_slack_data(self, request: Union[Request, dict]):
-        if isinstance(request, Request):
+        if hasattr(request, "form"):
             request = request.form
         assert request.get("channel_name") is not None
         assert request.get("user_name") is not None
