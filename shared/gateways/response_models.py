@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
-class LagResponseModel:
+class KafkaResponse:
     topic: str
     group_id: str
-    lags: list = field(default_factory=list)
+    data: Any

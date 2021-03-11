@@ -1,6 +1,8 @@
 from shared import ClientException, ExternalException, Presenter
-from modules.stream_verifier.domain import LagReport
-from flask import make_response
+from modules.stream_verifier.infrastructure.response_models import (
+    LagReportResponseModel,
+)
+from flask import Response
 from user_interface.slack.slack_bot.commands.slash import Slash
 from slack.web.client import WebClient
 from slack.signature.verifier import SignatureVerifier
@@ -12,27 +14,14 @@ class SlackExporter(Presenter):
         self.client = client
         self.signature_verifier = signature_verifier
 
-    def export_report(self, report, slack_data: dict, response):
-        if isinstance(report, list):
-            if isinstance(report[0], LagReport):
-                self.export_lag_report(report, slack_data, response, "Success")
-        else:
-            if isinstance(report, LagReport):
-                self.export_lag_report(report, slack_data, response, "Success")
-
-    def export_report_fail(self, report, slack_data: dict, response):
-        if isinstance(report, list):
-            if isinstance(report[0], LagReport):
-                self.export_lag_report(report, slack_data, response, "Fail")
-        else:
-            if isinstance(report, LagReport):
-                self.export_lag_report(report, slack_data, response, "Fail")
+    def export_db_report(self, report):
+        return super().export_db_report(report)
 
     def export_lag_report(
         self,
-        report: Union[List[LagReport], LagReport],
+        report: Union[List[LagReportResponseModel], LagReportResponseModel],
         slack_data: dict,
-        response,
+        response: Response,
         status: str,
     ):
         channel = slack_data.get("channel_name")
@@ -57,14 +46,16 @@ class SlackExporter(Presenter):
         response.status_code = 400
 
     def _parse_lag_report_to_string(
-        self, report: Union[List[LagReport], LagReport], state: str
+        self,
+        report: Union[List[LagReportResponseModel], LagReportResponseModel],
+        state: str,
     ):
         if state == "Success":
             text = f"""Stream Lag Report {state}\nNo group id has lag"""
         if state == "Fail":
-            if isinstance(report, LagReport):
+            if isinstance(report, LagReportResponseModel):
                 report = [report]
             text = f"""Stream Lag Report {state}\n"""
             for rep in report:
-                text += f"Lag Report: <topic: {rep.topic}, group_id: {rep.group_id}, lag: {rep.total_lag()}>"
+                text += rep.to_string()
         return text

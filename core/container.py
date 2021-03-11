@@ -30,6 +30,6 @@ class ApplicationContainer(containers.DeclarativeContainer):
         SlackController,
         slack_exporter=slack_exporter,
         get_lag_report=get_lag_use_case,
-        get_candid_count_report=providers.Object(None),
+        get_db_report=providers.Object(None),
         stream_config=config.streams,
     )

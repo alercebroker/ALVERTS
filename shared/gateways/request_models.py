@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class StreamRequestModel:
+class KafkaRequest:
     bootstrap_servers: str
     group_id: str
     topic: str

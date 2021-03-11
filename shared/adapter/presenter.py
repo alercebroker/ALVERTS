@@ -5,8 +5,10 @@ class Presenter(metaclass=abc.ABCMeta):
     @classmethod
     def __subclasshook__(cls, subclass):
         return (
-            hasattr(subclass, "export_report")
-            and callable(subclass.export_report)
+            hasattr(subclass, "export_lag_report")
+            and callable(subclass.export_lag_report)
+            and hasattr(subclass, "export_db_report")
+            and callable(subclass.export_db_report)
             and hasattr(subclass, "handle_client_error")
             and callable(subclass.handle_client_error)
             and hasattr(subclass, "handle_external_error")
@@ -19,7 +21,11 @@ class Presenter(metaclass=abc.ABCMeta):
         )
 
     @abc.abstractmethod
-    def export_report(self, report):
+    def export_lag_report(self, report):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def export_db_report(self, report):
         raise NotImplementedError
 
     @abc.abstractmethod

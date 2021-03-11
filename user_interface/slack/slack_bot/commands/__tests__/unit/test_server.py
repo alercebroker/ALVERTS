@@ -2,7 +2,6 @@ import pytest
 from unittest.mock import MagicMock
 from user_interface.slack.slack_bot.commands.server import create_app
 from typing import List
-from shared.gateways.request_models import StreamRequestModel
 from shared.result.result import Result
 from modules.stream_verifier.domain.lag_report import LagReport
 from shared.error.exceptions import ClientException, ExternalException
