@@ -81,7 +81,11 @@ SLACK_SCHEDULE_CONFIG = {
         "last_night_stats": {
             "channels": LAST_NIGHT_STATS_CHANNELS,
             "schedule": LAST_NIGHT_STATS_SCHEDULE,
-        }
+        },
+        "stream_lag_report": {
+            "channels": "chikigang",
+            "schedule": ["09:00", "10:00", "11:00", "12:00"],
+        },
     }
 }
 

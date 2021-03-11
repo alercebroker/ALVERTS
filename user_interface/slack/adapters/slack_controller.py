@@ -26,7 +26,7 @@ class SlackController(Controller):
     def get_db_count_report(self, request: Request, response: Response):
         return super().get_db_count_report(request)
 
-    def get_stream_lag_report(self, request: Request, response: Response):
+    def get_stream_lag_report(self, request: Union[Request, dict], response: Response):
         # define callback functions
         def respond_check_success(
             report: Union[List[LagReportResponseModel], LagReportResponseModel]
@@ -93,7 +93,9 @@ class SlackController(Controller):
             bootstrap_servers=bootstrap_servers, group_id=group_id, topic=topic
         )
 
-    def _get_slack_data(self, request):
-        assert request.form.get("channel_name") is not None
-        assert request.form.get("user_name") is not None
-        return request.form
+    def _get_slack_data(self, request: Union[Request, dict]):
+        if isinstance(request, Request):
+            request = request.form
+        assert request.get("channel_name") is not None
+        assert request.get("user_name") is not None
+        return request
