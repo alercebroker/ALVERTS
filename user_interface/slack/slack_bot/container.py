@@ -1,16 +1,20 @@
 from dependency_injector import containers, providers
 from confluent_kafka import Consumer
-from shared import KafkaService
+from shared.gateways.kafka import KafkaService
 from modules.stream_verifier.infrastructure.verifier import StreamVerifier
-from user_interface.slack.adapters.slack_presenter import SlackExporter
-from user_interface.slack.adapters.slack_controller import SlackController
 from slack.web.client import WebClient
 from slack.signature.verifier import SignatureVerifier
+from user_interface.slack.adapters.slack_presenter import SlackExporter
 from modules.stream_verifier.use_cases.get_lag_report import GetLagReport
+from user_interface.adapters.controller import ReportController
+from user_interface.slack.adapters.slack_request_model_creator import (
+    SlackRequestModelCreator,
+)
 
 
-class ApplicationContainer(containers.DeclarativeContainer):
+class SlackContainer(containers.DeclarativeContainer):
     config = providers.Configuration()
+    # gateways
     consumer_factory = providers.Factory(Consumer)
     kafka_service = providers.Singleton(
         KafkaService, consumer_creator=consumer_factory.provider
@@ -25,11 +29,11 @@ class ApplicationContainer(containers.DeclarativeContainer):
         client=slack_client,
         signature_verifier=slack_signature_verifier,
     )
-    get_lag_use_case = providers.Singleton(GetLagReport, verifier=stream_verifier)
     slack_controller = providers.Singleton(
-        SlackController,
-        slack_exporter=slack_exporter,
-        get_lag_report=get_lag_use_case,
-        get_db_report=providers.Object(None),
-        stream_config=config.streams,
+        ReportController,
+        presenter=slack_exporter,
+        use_cases=providers.Dict(
+            lag_report=providers.Singleton(GetLagReport, verifier=stream_verifier),
+        ),
+        request_model_creator=providers.Factory(SlackRequestModelCreator),
     )

@@ -1,48 +1,47 @@
 import pytest
 from shared import ClientException, ExternalException
+from shared.gateways.request_models import KafkaRequest
 from shared.gateways.__tests__.kafka.mocks import MockKafkaService
-from core import AlertSystem
-from dependency_injector import providers
+from modules.stream_verifier.infrastructure import (
+    StreamVerifier,
+    EntityParser,
+    ResponseModelParser,
+)
+from modules.stream_verifier.infrastructure.request_models import LagReportRequestModel
 
 
 @pytest.fixture
 def verifier():
-    app = AlertSystem({})
+    def _create(test_case: str):
+        verifier = StreamVerifier(MockKafkaService(test_case))
+        return verifier
 
-    def _verifier(state):
-        factory = providers.Factory(MockKafkaService, state=state)
-        app.container.kafka_service.override(factory)
-        return app.container.stream_verifier()
-
-    yield _verifier
-    app.container.unwire()
+    return _create
 
 
 class TestLagReport:
     def test_success_with_check_success(self, verifier):
-        # request model doesnt matter but must be at least one object in the array
-        result = verifier("success").get_lag_report(["fake_request_model"])
+        streams = [KafkaRequest("test", "test", "test")]
+        result = verifier("success").get_lag_report(LagReportRequestModel(streams))
         assert result.success
-        for report in result.value:
-            assert report.total_lag() == 0
-            assert report.success
+        assert result.value.success
 
     def test_success_with_check_fail(self, verifier):
-        # request model doesnt matter but must be at least one object in the array
-        result = verifier("check_fail").get_lag_report(["fake_request_model"])
+        streams = [KafkaRequest("test", "test", "test")]
+        result = verifier("check_fail").get_lag_report(LagReportRequestModel(streams))
         assert result.success
-        for report in result.value:
-            assert report.total_lag() == 10
-            assert not report.success
+        assert not result.value.success
 
     def test_fail_with_client_error(self, verifier):
-        # request model doesnt matter but must be at least one object in the array
-        result = verifier("client_error").get_lag_report(["fake_request_model"])
+        streams = [KafkaRequest("test", "test", "test")]
+        result = verifier("client_error").get_lag_report(LagReportRequestModel(streams))
         assert not result.success
         assert type(result.error) == ClientException
 
     def test_fail_with_external_error(self, verifier):
-        # request model doesnt matter but must be at least one object in the array
-        result = verifier("external_error").get_lag_report(["fake_request_model"])
+        streams = [KafkaRequest("test", "test", "test")]
+        result = verifier("external_error").get_lag_report(
+            LagReportRequestModel(streams)
+        )
         assert not result.success
         assert type(result.error) == ExternalException

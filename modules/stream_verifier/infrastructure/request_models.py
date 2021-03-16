@@ -1,9 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from shared.gateways.kafka import KafkaRequest
+from typing import List
 
 
 @dataclass
-class LagReportRequestModel(KafkaRequest):
-    topic: str
-    group_id: str
-    bootstrap_servers: str
+class LagReportRequestModel:
+    streams: List[KafkaRequest] = field(default_factory=list)

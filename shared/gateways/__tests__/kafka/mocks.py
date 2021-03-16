@@ -1,8 +1,6 @@
 from shared.result.result import Result
 from shared.error.exceptions import ClientException, ExternalException
-from modules.stream_verifier.infrastructure.response_models import (
-    LagReportResponseModel,
-)
+from modules.stream_verifier.domain.lag_report import LagReport
 
 
 class MockKafkaService:
@@ -11,15 +9,21 @@ class MockKafkaService:
 
     def get_lag(self, request_model, parser):
         if self.state == "success":
-            lag_report = LagReportResponseModel(
-                topic="test", group_id="test", lags=[0], success=True
+            lag_report = LagReport(
+                bootstrap_servers=request_model.bootstrap_servers,
+                topic=request_model.topic,
+                group_id=request_model.group_id,
+                lags=[0, 0, 0],
             )
             return Result.Ok(lag_report)
         if self.state == "check_fail":
-            lag_report = LagReportResponseModel(
-                topic="test", group_id="test", lags=[0, 10], success=False
+            lag_report = LagReport(
+                bootstrap_servers=request_model.bootstrap_servers,
+                topic=request_model.topic,
+                group_id=request_model.group_id,
+                lags=[0, 6, 4],
             )
-            return Result.Ok(lag_report, check_success=False)
+            return Result.Ok(lag_report)
         if self.state == "client_error":
             return Result.Fail(ClientException("fail"))
         if self.state == "external_error":

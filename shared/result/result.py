@@ -1,7 +1,10 @@
-from typing import List
+from typing import List, Generic, TypeVar
+
+T = TypeVar("T")
+E = TypeVar("E")
 
 
-class Result:
+class Result(Generic[T, E]):
     """Represents the outcome of an operation.
     Attributes
     ----------
@@ -16,15 +19,14 @@ class Result:
         operation was successful.
     """
 
-    def __init__(self, success, check_success, value, error):
+    def __init__(self, success: bool, value: T, error: E):
         if success and error:
             raise Exception("Can't have a succesfull result with error")
         if not success and value:
             raise Exception("Can't have an errored result with value")
-        self.success = success
-        self.check_success = check_success
-        self.error = error
-        self.value = value
+        self.success: bool = success
+        self.error: E = error
+        self.value: T = value
 
     @property
     def failure(self):
@@ -46,16 +48,16 @@ class Result:
     @classmethod
     def Fail(cls, error):
         """Create a Result object for a failed operation."""
-        return cls(False, value=None, check_success=False, error=error)
+        return cls(False, value=None, error=error)
 
     @classmethod
-    def Ok(cls, value=None, check_success=True):
+    def Ok(cls, value=None):
         """Create a Result object for a successful operation."""
-        return cls(True, value=value, check_success=check_success, error=None)
+        return cls(True, value=value, error=None)
 
     @classmethod
     def combine(cls, result_list: List):
-        acc = cls.Ok(value=[], check_success=True)
+        acc = cls.Ok(value=[])
         for result in result_list:
             if acc.success:
                 if result.success:
@@ -63,7 +65,6 @@ class Result:
                         acc.value.extend(result.value)
                     else:
                         acc.value.append(result.value)
-                    acc.check_success = result.check_success
                 else:
                     acc = cls.Fail(result.error)
             else:

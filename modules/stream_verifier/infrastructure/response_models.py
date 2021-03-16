@@ -1,19 +1,16 @@
 from typing import List
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+
+@dataclass
+class StreamResponse:
+    bootstrap_servers: str
+    group_id: str
+    topic: str
+    lag: int
 
 
 @dataclass
 class LagReportResponseModel:
-    topic: str
-    group_id: str
-    lags: List[int]
+    streams: List[StreamResponse]
     success: bool
-
-    def total_lag(self):
-        return sum(self.lags)
-
-    def to_string(self):
-        return f"Lag Report: <topic: {self.topic}, group_id: {self.group_id}, lag: {self.total_lag()}>"
-
-    def to_fancy_string(self):
-        pass

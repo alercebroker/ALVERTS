@@ -2,6 +2,11 @@ from confluent_kafka import Consumer, KafkaError, KafkaException
 from shared import Result, ClientException
 from .request_models import KafkaRequest
 from .response_models import KafkaResponse
+from typing import Callable, TypeVar, List
+from shared.error.exceptions import ExternalException
+
+T = TypeVar("T")
+E = TypeVar("E")
 
 
 class KafkaService:
@@ -18,9 +23,11 @@ class KafkaService:
         }
         return self.consumer_creator(consumer_config)
 
-    def consume_one(self, stream: KafkaRequest, consumer=None):
+    def consume_one(self, stream: KafkaRequest, consumer=None) -> None:
+        created = False
         if not consumer:
             consumer = self.create_consumer(stream)
+            created = True
         consumer.subscribe(topics=[stream.topic])
 
         while True:
@@ -34,7 +41,11 @@ class KafkaService:
                 elif msg.error():
                     raise KafkaException(msg.error())
             else:
-                return
+                break
+
+        if created:
+            consumer.close()
+            del consumer
 
     def consume(self, stream: KafkaRequest, process):
         consumer = self.create_consumer(stream)
@@ -53,14 +64,24 @@ class KafkaService:
                     raise KafkaException(msg.error())
             else:
                 process(msg)
+        consumer.close()
+        del consumer
 
-    def get_lag(self, request: KafkaRequest, parser) -> Result:
+    def get_lag(
+        self, request: KafkaRequest, parser: Callable[..., Result[T, E]]
+    ) -> Result[T, E]:
         consumer = self.create_consumer(request)
-        self.consume_one(request, consumer=consumer)
+        try:
+            self.consume_one(request, consumer=consumer)
+        except KafkaException as e:
+            return Result.Fail(ExternalException(f"Error with kafka message: {e}"))
         partitions = consumer.assignment()
         partition_messages = self.get_messages_per_partition(partitions, consumer)
         response = KafkaResponse(
-            topic=request.topic, group_id=request.group_id, data={"lags": []}
+            bootstrap_servers=request.bootstrap_servers,
+            topic=request.topic,
+            group_id=request.group_id,
+            data={"lags": []},
         )
         positions = consumer.position(partitions)
         if len(positions) == 0:
@@ -72,16 +93,24 @@ class KafkaService:
                 response.data["lags"].append(0)
             else:
                 response.data["lags"].append(partition_messages[i] - pos.offset + 1)
-        return parser.to_report(response)
+        consumer.close()
+        del consumer
+        return parser(response)
 
     def get_messages_per_partition(
         self, partitions=None, consumer=None, stream: KafkaRequest = None
-    ):
+    ) -> List[int]:
+        created = False
         if not partitions:
             consumer = self.create_consumer(stream)
+            created = True
             partitions = consumer.assignment()
         high_offsets = []
         for part in partitions:
             offsets = consumer.get_watermark_offsets(part)
             high_offsets.append(offsets[1])
+
+        if created:
+            consumer.close()
+            del consumer
         return high_offsets

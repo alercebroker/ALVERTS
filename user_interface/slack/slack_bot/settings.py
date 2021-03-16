@@ -83,11 +83,8 @@ SLACK_SCHEDULE_CONFIG = {
             "schedule": LAST_NIGHT_STATS_SCHEDULE,
         },
         "stream_lag_report": {
-            "channels": "chikigang",
-            "schedule": ["09:00", "10:00", "11:00", "12:00"],
+            "channels": ["chikigang"],
+            "schedule": ["09:00", "10:00", "11:00", "12:00", "09:46"],
         },
     }
 }
-
-
-ALERT_SYSTEM_CONFIG = {"streams": KAFKA_STREAMS, "slack": SLACK_CREDENTIALS}

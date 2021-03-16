@@ -1,36 +1,72 @@
-from shared import ClientException, ExternalException, Presenter
+from shared import ClientException, ExternalException
+from user_interface.adapters.presenter import ReportPresenter
 from modules.stream_verifier.infrastructure.response_models import (
     LagReportResponseModel,
 )
 from flask import Response
-from user_interface.slack.slack_bot.commands.slash import Slash
 from slack.web.client import WebClient
 from slack.signature.verifier import SignatureVerifier
-from typing import Union, List
+from typing import Union, List, NewType, Dict
+
+SlackParameters = NewType("SlackParameters", Dict[str, str])
 
 
-class SlackExporter(Presenter):
-    def __init__(self, client: WebClient, signature_verifier: SignatureVerifier):
+class SlackExporter(ReportPresenter):
+    def __init__(
+        self,
+        client: WebClient,
+        signature_verifier: SignatureVerifier,
+        view: Union[Response, dict] = None,
+    ):
         self.client = client
         self.signature_verifier = signature_verifier
+        self.view = view
 
-    def export_db_report(self, report):
-        return super().export_db_report(report)
-
-    def export_lag_report(
+    def set_view(
         self,
-        report: Union[List[LagReportResponseModel], LagReportResponseModel],
-        slack_data: dict,
-        response: Union[Response, dict],
-        status: str,
+        view: Union[Response, dict],
     ):
-        channel = slack_data.get("channel_name")
-        text = self._parse_lag_report_to_string(report, status)
-        post_response = self.client.chat_postMessage(channel=f"#{channel}", text=text)
-        if isinstance(response, dict):
-            response["status_code"] = post_response.status_code
+        self.view = view
+
+    def set_slack_parameters(self, slack_parameters: SlackParameters):
+        if slack_parameters.get("channel_name") is None:
+            self.handle_request_error(
+                ClientException("Parameters must include channel_name"), self.view
+            )
+            return
+        self.slack_parameters = slack_parameters
+
+    def export_lag_report(self, report: LagReportResponseModel):
+        try:
+            channel = self.slack_parameters.get("channel_name")
+        except Exception as e:
+            self.handle_client_error(
+                ClientException(f"slack parameters not provided: {e}"), self.view
+            )
+            return
+
+        try:
+            text = self._parse_lag_report_to_string(report)
+        except Exception as e:
+            self.handle_parse_error(
+                ClientException(f"Error parsing report: {e}"), self.view
+            )
+            return
+
+        try:
+            post_response = self.client.chat_postMessage(
+                channel=f"#{channel}", text=text
+            )
+        except Exception as e:
+            self.handle_external_error(
+                ExternalException(f"Error sending message: {e}"), self.view
+            )
+            return
+
+        if isinstance(self.view, dict):
+            self.view["status_code"] = post_response.status_code
         else:
-            response.status_code = post_response.status_code
+            self.view.status_code = post_response.status_code
 
     def handle_client_error(self, error: ClientException, response):
         message = f"Client Error: {error}"
@@ -72,17 +108,12 @@ class SlackExporter(Presenter):
             response.status_code = code
             response.data = message
 
-    def _parse_lag_report_to_string(
-        self,
-        report: Union[List[LagReportResponseModel], LagReportResponseModel],
-        state: str,
-    ):
-        if state == "Success":
-            text = f"""Stream Lag Report {state}\nNo group id has lag"""
-        if state == "Fail":
-            if isinstance(report, LagReportResponseModel):
-                report = [report]
-            text = f"""Stream Lag Report {state}\n"""
-            for rep in report:
-                text += rep.to_string()
+    def _parse_lag_report_to_string(self, report: LagReportResponseModel):
+        if report.success:
+            text = f"""Stream Lag Report Success\nNo group id has lag"""
+        else:
+            text = f"""Stream Lag Report Fail\n"""
+            for rep in report.streams:
+                text += f"Topic: {rep.topic}, Group Id: {rep.group_id}, Bootstrap Servers: {rep.bootstrap_servers}"
+                text += "\n"
         return text

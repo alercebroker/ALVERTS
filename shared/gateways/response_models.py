@@ -6,4 +6,5 @@ from typing import Any
 class KafkaResponse:
     topic: str
     group_id: str
+    bootstrap_servers: str
     data: Any

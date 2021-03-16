@@ -1,6 +1,9 @@
 from modules.stream_verifier.infrastructure import StreamVerifier
 from modules.stream_verifier.infrastructure.request_models import LagReportRequestModel
-from typing import List
+from modules.stream_verifier.infrastructure.response_models import (
+    LagReportResponseModel,
+)
+from typing import Dict, Callable
 from shared import ClientException, ExternalException, Result, UseCase
 
 
@@ -9,19 +12,18 @@ class GetLagReport(UseCase):
         self.verifier = verifier
 
     def execute(
-        self, request_models: List[LagReportRequestModel], callbacks: dict
-    ) -> Result:
-        result = self.verifier.get_lag_report(request_models)
+        self, request_model: LagReportRequestModel, callbacks: Dict[str, Callable]
+    ):
+        result: Result[
+            LagReportResponseModel, Exception
+        ] = self.verifier.get_lag_report(request_model)
 
         if result.success:
-            if result.check_success:
-                callbacks["respond_check_success"](result.value)
-            else:
-                callbacks["respond_check_fail"](result.value)
+            callbacks["success"](result.value)
         else:
             if type(result.error) == ClientException:
-                callbacks["respond_client_error"](result.error)
+                callbacks["client_error"](result.error)
             elif type(result.error) == ExternalException:
-                callbacks["respond_external_error"](result.error)
+                callbacks["external_error"](result.error)
             else:
-                callbacks["respond_parse_error"](result.error)
+                callbacks["client_error"](result.error)
