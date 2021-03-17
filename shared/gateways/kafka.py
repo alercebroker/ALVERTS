@@ -47,23 +47,42 @@ class KafkaService:
             consumer.close()
             del consumer
 
-    def consume(self, stream: KafkaRequest, process):
-        consumer = self.create_consumer(stream)
-        topics = [stream.topic]
+    def consume_all(
+        self,
+        request: KafkaRequest,
+        process: Callable,
+        consumer: Consumer = None,
+    ):
+        created = False
+        if not consumer:
+            consumer = self.create_consumer(request)
+            created = True
+        topics = [request.topic]
         consumer.subscribe(topics=topics)
-
-        while True:
-            msg = consumer.poll(timeout=10)
-            if msg is None:
+        partitions = consumer.assignment()
+        total_messages = sum(
+            self.get_messages_per_partition(partitions=partitions, consumer=consumer)
+        )
+        consumed_messages = 0
+        while total_messages > 0 and consumed_messages <= total_messages:
+            msgs = consumer.consume(request.batch_size, timeout=10)
+            if len(msgs) == 0:
                 continue
 
-            if msg.error():
-                if msg.error().code() == KafkaError._PARTITION_EOF:
-                    return
-                elif msg.error():
-                    raise KafkaException(msg.error())
-            else:
-                process(msg)
+            for msg in msgs:
+                if msg.error():
+                    if msg.error().code() == KafkaError._PARTITION_EOF:
+                        pass
+                    elif msg.error():
+                        raise KafkaException(msg.error())
+            consumed_messages += request.batch_size
+            response = KafkaResponse(
+                bootstrap_servers=request.bootstrap_servers,
+                topic=request.topic,
+                group_id=request.group_id,
+                data=msgs,
+            )
+            process(response)
         consumer.close()
         del consumer
 
@@ -104,6 +123,7 @@ class KafkaService:
         if not partitions:
             consumer = self.create_consumer(stream)
             created = True
+            self.consume_one(stream, consumer=consumer)
             partitions = consumer.assignment()
         high_offsets = []
         for part in partitions:

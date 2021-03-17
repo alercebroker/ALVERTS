@@ -7,7 +7,10 @@ from modules.stream_verifier.infrastructure import (
     EntityParser,
     ResponseModelParser,
 )
-from modules.stream_verifier.infrastructure.request_models import LagReportRequestModel
+from modules.stream_verifier.infrastructure.request_models import (
+    LagReportRequestModel,
+    DetectionsReportRequestModel,
+)
 
 
 @pytest.fixture
@@ -45,3 +48,13 @@ class TestLagReport:
         )
         assert not result.success
         assert type(result.error) == ExternalException
+
+
+class TestDetectionsReport:
+    def test_success_with_check_success(self, verifier):
+        streams = [KafkaRequest("test", "test", "test")]
+        result = verifier("success").get_detections_report(
+            DetectionsReportRequestModel(streams)
+        )
+        assert result.success
+        assert result.value.success
