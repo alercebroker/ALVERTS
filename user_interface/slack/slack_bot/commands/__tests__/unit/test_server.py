@@ -49,7 +49,14 @@ class TestStreamLagCheck:
 
     def test_should_return_with_check_fail(self, client, app):
         app.container.kafka_service.override(
-            providers.Factory(MockKafkaService, test_type="check_fail")
+            providers.Factory(MockKafkaService, state="check_fail")
+        )
+        app.container.config.from_dict(
+            {
+                "streams": [
+                    {"bootstrap_servers": "test", "group_id": "test", "topic": "test"}
+                ]
+            }
         )
         slack_client_mock = MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -62,12 +69,13 @@ class TestStreamLagCheck:
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#channel",
             text="""Stream Lag Report Fail
-Lag Report: <topic: test, group_id: test, lag: 10>""",
+Topic: test, Group Id: test, Bootstrap Servers: test, Lag: 10
+""",
         )
 
     def test_should_return_with_client_error(self, client, app):
         app.container.kafka_service.override(
-            providers.Factory(MockKafkaService, test_type="client_error")
+            providers.Factory(MockKafkaService, state="client_error")
         )
         test_client = client(app)
         response = test_client.post(
@@ -79,7 +87,7 @@ Lag Report: <topic: test, group_id: test, lag: 10>""",
 
     def test_should_return_with_external_error(self, client, app):
         app.container.kafka_service.override(
-            providers.Factory(MockKafkaService, test_type="external_error")
+            providers.Factory(MockKafkaService, state="external_error")
         )
         test_client = client(app)
         response = test_client.post(
@@ -91,7 +99,7 @@ Lag Report: <topic: test, group_id: test, lag: 10>""",
 
     def test_should_return_with_parse_error(self, client, app):
         app.container.kafka_service.override(
-            providers.Factory(MockKafkaService, test_type="parse_error")
+            providers.Factory(MockKafkaService, state="parse_error")
         )
         test_client = client(app)
         response = test_client.post(
@@ -105,7 +113,7 @@ Lag Report: <topic: test, group_id: test, lag: 10>""",
         self, client, app
     ):
         app.container.kafka_service.override(
-            providers.Factory(MockKafkaService, test_type="request_error")
+            providers.Factory(MockKafkaService, state="success")
         )
         test_client = client(app)
         response = test_client.post(
@@ -113,13 +121,13 @@ Lag Report: <topic: test, group_id: test, lag: 10>""",
             data={"user_name": "user"},
         )
         assert response.status_code == 400
-        assert response.data == b"Request Error: Wrong slack parameters"
+        assert response.data == b"Request Error: Parameters must include channel_name"
 
     def test_should_return_with_request_error_with_wrong_stream_parameters(
         self, client, app
     ):
         app.container.kafka_service.override(
-            providers.Factory(MockKafkaService, test_type="request_error")
+            providers.Factory(MockKafkaService, state="client_error")
         )
         app.container.config.from_dict({"streams": [{"bootstrap_servers": "test"}]})
         test_client = client(app)
@@ -128,4 +136,6 @@ Lag Report: <topic: test, group_id: test, lag: 10>""",
             data={"channel_name": "channel", "user_name": "user"},
         )
         assert response.status_code == 400
-        assert response.data == b"Client Error: 'topic'"
+        assert (
+            response.data == b"Client Error: Missing 'group_id' parameter for streams"
+        )

@@ -28,3 +28,5 @@ class MockKafkaService:
             return Result.Fail(ClientException("fail"))
         if self.state == "external_error":
             return Result.Fail(ExternalException("fail"))
+        if self.state == "parse_error":
+            return Result.Fail(Exception("fail"))

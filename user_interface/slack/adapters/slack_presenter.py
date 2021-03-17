@@ -31,7 +31,7 @@ class SlackExporter(ReportPresenter):
     def set_slack_parameters(self, slack_parameters: SlackParameters):
         if slack_parameters.get("channel_name") is None:
             self.handle_request_error(
-                ClientException("Parameters must include channel_name"), self.view
+                ClientException("Parameters must include channel_name")
             )
             return
         self.slack_parameters = slack_parameters
@@ -41,16 +41,14 @@ class SlackExporter(ReportPresenter):
             channel = self.slack_parameters.get("channel_name")
         except Exception as e:
             self.handle_client_error(
-                ClientException(f"slack parameters not provided: {e}"), self.view
+                ClientException(f"slack parameters not provided: {e}")
             )
             return
 
         try:
             text = self._parse_lag_report_to_string(report)
         except Exception as e:
-            self.handle_parse_error(
-                ClientException(f"Error parsing report: {e}"), self.view
-            )
+            self.handle_parse_error(ClientException(f"Error parsing report: {e}"))
             return
 
         try:
@@ -58,9 +56,7 @@ class SlackExporter(ReportPresenter):
                 channel=f"#{channel}", text=text
             )
         except Exception as e:
-            self.handle_external_error(
-                ExternalException(f"Error sending message: {e}"), self.view
-            )
+            self.handle_external_error(ExternalException(f"Error sending message: {e}"))
             return
 
         if isinstance(self.view, dict):
@@ -68,45 +64,45 @@ class SlackExporter(ReportPresenter):
         else:
             self.view.status_code = post_response.status_code
 
-    def handle_client_error(self, error: ClientException, response):
+    def handle_client_error(self, error: ClientException):
         message = f"Client Error: {error}"
         code = 400
-        if isinstance(response, dict):
-            response["status_code"] = code
-            response["data"] = message
+        if isinstance(self.view, dict):
+            self.view["status_code"] = code
+            self.view["data"] = message
         else:
-            response.status_code = code
-            response.data = message
+            self.view.status_code = code
+            self.view.data = message
 
-    def handle_external_error(self, error: ExternalException, response):
+    def handle_external_error(self, error: ExternalException):
         message = f"External Error: {error}"
         code = 500
-        if isinstance(response, dict):
-            response["status_code"] = code
-            response["data"] = message
+        if isinstance(self.view, dict):
+            self.view["status_code"] = code
+            self.view["data"] = message
         else:
-            response.status_code = code
-            response.data = message
+            self.view.status_code = code
+            self.view.data = message
 
-    def handle_parse_error(self, error: Exception, response):
+    def handle_application_error(self, error: Exception):
         message = f"Parse Error: {error}"
         code = 500
-        if isinstance(response, dict):
-            response["status_code"] = code
-            response["data"] = message
+        if isinstance(self.view, dict):
+            self.view["status_code"] = code
+            self.view["data"] = message
         else:
-            response.status_code = code
-            response.data = message
+            self.view.status_code = code
+            self.view.data = message
 
-    def handle_request_error(self, error: Exception, response):
+    def handle_request_error(self, error: Exception):
         message = f"Request Error: {error}"
         code = 400
-        if isinstance(response, dict):
-            response["status_code"] = code
-            response["data"] = message
+        if isinstance(self.view, dict):
+            self.view["status_code"] = code
+            self.view["data"] = message
         else:
-            response.status_code = code
-            response.data = message
+            self.view.status_code = code
+            self.view.data = message
 
     def _parse_lag_report_to_string(self, report: LagReportResponseModel):
         if report.success:
@@ -114,6 +110,6 @@ class SlackExporter(ReportPresenter):
         else:
             text = f"""Stream Lag Report Fail\n"""
             for rep in report.streams:
-                text += f"Topic: {rep.topic}, Group Id: {rep.group_id}, Bootstrap Servers: {rep.bootstrap_servers}"
+                text += f"Topic: {rep.topic}, Group Id: {rep.group_id}, Bootstrap Servers: {rep.bootstrap_servers}, Lag: {rep.lag}"
                 text += "\n"
         return text

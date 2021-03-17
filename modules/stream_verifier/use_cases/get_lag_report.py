@@ -26,4 +26,4 @@ class GetLagReport(UseCase):
             elif type(result.error) == ExternalException:
                 callbacks["external_error"](result.error)
             else:
-                callbacks["client_error"](result.error)
+                callbacks["application_error"](result.error)

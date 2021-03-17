@@ -64,11 +64,13 @@ def command_last_night_objects():
 def command_stream_lag_check(
     controller: ReportController = Provide[SlackContainer.slack_controller],
     exporter: SlackExporter = Provide[SlackContainer.slack_exporter],
+    streams: dict = Provide[SlackContainer.config.streams],
 ):
     local_request: Request = request
     exporter.set_view(make_response())
     exporter.set_slack_parameters(local_request.form)
-    controller.get_report(current_app.container.config.streams, "lag_report")
+    if exporter.view.status_code == 200:
+        controller.get_report(streams, "lag_report")
     return exporter.view
 
 

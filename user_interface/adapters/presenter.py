@@ -24,3 +24,7 @@ class ReportPresenter(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def handle_external_error(self, error):
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def handle_application_error(self, error):
+        raise NotImplementedError

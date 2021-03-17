@@ -19,8 +19,14 @@ class ReportController:
         self.request_model_creator = request_model_creator
 
     def get_report(self, params: Any, report_type: str):
-        request_model = self.request_model_creator.to_request_model(params, report_type)
         callbacks = self._make_callbacks(report_type)
+        try:
+            request_model = self.request_model_creator.to_request_model(
+                params, report_type
+            )
+        except KeyError as e:
+            callbacks["client_error"](Exception(f"Missing {e} parameter for streams"))
+            return
         self.use_cases.get(report_type).execute(request_model, callbacks)
 
     def _make_callbacks(self, report_type: str):
@@ -29,6 +35,9 @@ class ReportController:
 
         def on_external_error(error: Exception):
             self.presenter.handle_external_error(error)
+
+        def on_application_error(error: Exception):
+            self.presenter.handle_application_error(error)
 
         if report_type == "lag_report":
 
@@ -39,6 +48,7 @@ class ReportController:
                 "success": on_success,
                 "client_error": on_client_error,
                 "external_error": on_external_error,
+                "application_error": on_application_error,
             }
 
             return callbacks
