@@ -2,6 +2,7 @@ import pytest
 from shared import ClientException, ExternalException
 from shared.gateways.request_models import KafkaRequest
 from shared.gateways.__tests__.kafka.mocks import MockKafkaService
+from shared.gateways.__tests__.psql.mocks import MockPsqlService
 from modules.stream_verifier.infrastructure import (
     StreamVerifier,
     EntityParser,
@@ -16,7 +17,9 @@ from modules.stream_verifier.infrastructure.request_models import (
 @pytest.fixture
 def verifier():
     def _create(test_case: str):
-        verifier = StreamVerifier(MockKafkaService(test_case))
+        verifier = StreamVerifier(
+            MockKafkaService(test_case), MockPsqlService(test_case), ["oid", "candid"]
+        )
         return verifier
 
     return _create
@@ -53,8 +56,9 @@ class TestLagReport:
 class TestDetectionsReport:
     def test_success_with_check_success(self, verifier):
         streams = [KafkaRequest("test", "test", "test")]
+        tables = ["test"]
         result = verifier("success").get_detections_report(
-            DetectionsReportRequestModel(streams)
+            DetectionsReportRequestModel(streams, tables)
         )
         assert result.success
         assert result.value.success

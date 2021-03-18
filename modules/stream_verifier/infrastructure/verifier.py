@@ -3,26 +3,33 @@ from .request_models import LagReportRequestModel
 from .response_models import LagReportResponseModel
 from modules.stream_verifier.domain import IStreamVerifier
 from typing import List
-from shared import KafkaService, Result
+from shared import KafkaService, Result, PsqlService
 from modules.stream_verifier.infrastructure.parsers import ResponseModelParser
 from shared.error.exceptions import ExternalException
 from io import BytesIO
 import fastavro
+import logging
 
 
 class StreamVerifier(IStreamVerifier):
     def __init__(
-        self, kafka_service: KafkaService, db_service: DBService, identifiers: List[str]
+        self,
+        kafka_service: KafkaService,
+        db_service: PsqlService,
+        identifiers: List[str],
     ):
         self.kafka_service = kafka_service
         self.db_service = db_service
         self._entity_parser = EntityParser()
         self._response_model_parser = ResponseModelParser()
         self._identifiers = identifiers
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.setLevel(logging.INFO)
 
     def get_lag_report(
         self, request_model: LagReportRequestModel
     ) -> Result[LagReportResponseModel, Exception]:
+        self.logger.info("Getting lag report")
         reports = []
         for stream in request_model.streams:
             reports.append(
@@ -30,6 +37,7 @@ class StreamVerifier(IStreamVerifier):
             )
         combined_reports = Result.combine(reports)
         if not combined_reports.success:
+            self.logger.error("Failed to get lag report")
             return combined_reports
         response_model = self._response_model_parser.to_lag_report_response_model(
             combined_reports.value
@@ -45,7 +53,7 @@ class StreamVerifier(IStreamVerifier):
 
                 def process_function(kafka_response):
                     def parse_function(db_response):
-                        self._entity_parser.to_detections_report(
+                        return self._entity_parser.to_detections_report(
                             db_response, kafka_response
                         )
 
@@ -56,7 +64,9 @@ class StreamVerifier(IStreamVerifier):
 
                 self.kafka_service.consume_all(stream, process_function)
             except Exception as e:
-                return Result.Fail(ExternalException("Error with kafka message: {e}"))
+                err = f"Error with kafka message {e}"
+                self.logger.error(err)
+                return Result.Fail(ExternalException(err))
         combined_reports = Result.combine(reports)
         if not combined_reports.success:
             return combined_reports
@@ -77,10 +87,10 @@ class StreamVerifier(IStreamVerifier):
 
     def _check_difference(self, values: list, table: str, parser: Callable) -> list:
         if len(values) == 0:
-            raise ValueError(
-                "No values passed, the topic is empty or something went wrong consuming."
-            )
+            err = "No values passed, the topic is empty or something went wrong consuming."
+            self.logger.error(err)
+            raise ValueError(err)
 
         str_values = ",\n".join([f"('{val[0]}', {val[1]})" for val in values])
         QUERY_VALUES = self.create_base_query(table) % str_values
-        return self.db_service.query(QUERY_VALUES, parser)
+        return self.db_service.execute(QUERY_VALUES, parser)

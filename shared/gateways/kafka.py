@@ -64,9 +64,21 @@ class KafkaService:
             self.get_messages_per_partition(partitions=partitions, consumer=consumer)
         )
         consumed_messages = 0
+        retries = 3
+        retry_count = 0
         while total_messages > 0 and consumed_messages <= total_messages:
             msgs = consumer.consume(request.batch_size, timeout=10)
             if len(msgs) == 0:
+                if retry_count == retries:
+                    response = KafkaResponse(
+                        bootstrap_servers=request.bootstrap_servers,
+                        topic=request.topic,
+                        group_id=request.group_id,
+                        data=msgs,
+                    )
+                    process(response)
+                    break
+                retry_count += 1
                 continue
 
             for msg in msgs:

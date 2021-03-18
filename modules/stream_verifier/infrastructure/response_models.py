@@ -14,3 +14,19 @@ class StreamResponse:
 class LagReportResponseModel:
     streams: List[StreamResponse]
     success: bool
+
+
+@dataclass
+class DifferenceResponse:
+    bootstrap_servers: str
+    group_id: str
+    topic: str
+    difference: List
+    total_messages: int
+    processed: int
+
+
+@dataclass
+class DetectionsReportResponseModel:
+    streams: List[DifferenceResponse]
+    success: bool
