@@ -57,6 +57,8 @@ class StreamVerifier(IStreamVerifier):
                             db_response, kafka_response
                         )
 
+                    self.db_service.connect(table.db_url)
+
                     values = self._process_kafka_messages(kafka_response)
                     reports.append(
                         self._check_difference(values, table.table_name, parse_function)

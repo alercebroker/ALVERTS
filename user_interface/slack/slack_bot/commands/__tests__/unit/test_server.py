@@ -107,7 +107,7 @@ Topic: test, Group Id: test, Bootstrap Servers: test, Lag: 10
             data={"channel_name": "channel", "user_name": "user"},
         )
         assert response.status_code == 500
-        assert response.data == b"Parse Error: fail"
+        assert response.data == b"Application Error: fail"
 
     def test_should_return_with_request_error_with_wrong_slack_parameters(
         self, client, app

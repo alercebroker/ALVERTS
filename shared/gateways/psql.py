@@ -8,16 +8,22 @@ from sqlalchemy.orm import Session
 
 
 class PsqlService:
-    def __init__(self, db_url: str) -> None:
-        self._engine = create_engine(db_url, echo=True)
-        self._session_factory = orm.scoped_session(
-            orm.sessionmaker(
-                autocommit=False,
-                autoflush=False,
-                bind=self._engine,
-            ),
-        )
+    def __init__(self) -> None:
         self._init_log()
+        self.db_url = ""
+
+    def connect(self, db_url: str):
+        if self.db_url != db_url:
+            self.db_url = db_url
+            self._engine.dispose()
+            self._engine = create_engine(db_url, echo=True)
+            self._session_factory = orm.scoped_session(
+                orm.sessionmaker(
+                    autocommit=False,
+                    autoflush=False,
+                    bind=self._engine,
+                ),
+            )
 
     def _init_log(self, logger=None) -> None:
         self.logger = logger or logging.getLogger(self.__class__.__name__)

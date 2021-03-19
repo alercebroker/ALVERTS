@@ -22,3 +22,21 @@ class TestToRequestModel:
         )
         assert len(model.streams) == 1
         assert model.streams[-1].bootstrap_servers == "test"
+
+    def test_detections_report(self, creator):
+        model = creator.to_request_model(
+            {
+                "streams": [
+                    {
+                        "bootstrap_servers": "test",
+                        "group_id": "test",
+                        "topic": "test",
+                    }
+                ],
+                "database": [{"db_url": "test", "table_name": "test"}],
+            },
+            "detections_report",
+        )
+        assert len(model.streams) == 1 and len(model.streams) == len(model.tables)
+        assert model.streams[-1].bootstrap_servers == "test"
+        assert model.tables[-1].db_url == "test"

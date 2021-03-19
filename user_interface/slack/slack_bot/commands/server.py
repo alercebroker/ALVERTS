@@ -21,7 +21,11 @@ main = Blueprint("slack", __name__, url_prefix="/slack")
 def create_app():
     container = SlackContainer()
     container.config.from_dict(
-        {"slack": settings.SLACK_CREDENTIALS, "streams": settings.KAFKA_STREAMS}
+        {
+            "slack": settings.SLACK_CREDENTIALS,
+            "streams": settings.KAFKA_STREAMS,
+            "db": {"table_identifiers": ["oid", "candid"]},
+        }
     )
     container.wire(modules=[sys.modules[__name__]])
     app = Flask(__name__)

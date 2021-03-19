@@ -11,4 +11,5 @@ class KafkaRequest:
 
 @dataclass
 class TableRequest:
+    db_url: str
     table_name: str

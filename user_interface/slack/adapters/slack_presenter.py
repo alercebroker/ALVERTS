@@ -2,6 +2,7 @@ from shared import ClientException, ExternalException
 from user_interface.adapters.presenter import ReportPresenter
 from modules.stream_verifier.infrastructure.response_models import (
     LagReportResponseModel,
+    DetectionsReportResponseModel,
 )
 from flask import Response
 from slack.web.client import WebClient
@@ -48,7 +49,35 @@ class SlackExporter(ReportPresenter):
         try:
             text = self._parse_lag_report_to_string(report)
         except Exception as e:
-            self.handle_parse_error(ClientException(f"Error parsing report: {e}"))
+            self.handle_application_error(ClientException(f"Error parsing report: {e}"))
+            return
+
+        try:
+            post_response = self.client.chat_postMessage(
+                channel=f"#{channel}", text=text
+            )
+        except Exception as e:
+            self.handle_external_error(ExternalException(f"Error sending message: {e}"))
+            return
+
+        if isinstance(self.view, dict):
+            self.view["status_code"] = post_response.status_code
+        else:
+            self.view.status_code = post_response.status_code
+
+    def export_detections_report(self, report: DetectionsReportResponseModel):
+        try:
+            channel = self.slack_parameters.get("channel_name")
+        except Exception as e:
+            self.handle_client_error(
+                ClientException(f"slack parameters not provided: {e}")
+            )
+            return
+
+        try:
+            text = self._parse_detections_report_to_string(report)
+        except Exception as e:
+            self.handle_application_error(ClientException(f"Error parsing report: {e}"))
             return
 
         try:
@@ -85,7 +114,7 @@ class SlackExporter(ReportPresenter):
             self.view.data = message
 
     def handle_application_error(self, error: Exception):
-        message = f"Parse Error: {error}"
+        message = f"Application Error: {error}"
         code = 500
         if isinstance(self.view, dict):
             self.view["status_code"] = code
@@ -113,3 +142,20 @@ class SlackExporter(ReportPresenter):
                 text += f"Topic: {rep.topic}, Group Id: {rep.group_id}, Bootstrap Servers: {rep.bootstrap_servers}, Lag: {rep.lag}"
                 text += "\n"
         return text
+
+    def _parse_detections_report_to_string(self, report: DetectionsReportResponseModel):
+        text = "Topic {} from {} with group id {} processed {} out of {} alerts with {} missing\n"
+        state_text = "Success" if report.success else "Failed"
+        post_message = f"Detections report {state_text}\n"
+        for rep in report.streams:
+            text_copy = text
+            post_message += text_copy.format(
+                rep.topic,
+                rep.bootstrap_servers,
+                rep.group_id,
+                rep.processed,
+                rep.total_messages,
+                len(rep.difference),
+            )
+
+        return post_message

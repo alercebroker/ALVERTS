@@ -10,6 +10,7 @@ from user_interface.adapters.controller import ReportController
 from user_interface.slack.adapters.slack_request_model_creator import (
     SlackRequestModelCreator,
 )
+from shared.gateways.psql import PsqlService
 
 
 class SlackContainer(containers.DeclarativeContainer):
@@ -19,7 +20,13 @@ class SlackContainer(containers.DeclarativeContainer):
     kafka_service = providers.Singleton(
         KafkaService, consumer_creator=consumer_factory.provider
     )
-    stream_verifier = providers.Singleton(StreamVerifier, kafka_service=kafka_service)
+    db_service = providers.Singleton(PsqlService)
+    stream_verifier = providers.Singleton(
+        StreamVerifier,
+        kafka_service=kafka_service,
+        db_service=db_service,
+        identifiers=config.db.table_identifiers,
+    )
     slack_client = providers.Singleton(WebClient, token=config.slack.SLACK_BOT_TOKEN)
     slack_signature_verifier = providers.Singleton(
         SignatureVerifier, signing_secret=config.slack.SLACK_SIGNATURE

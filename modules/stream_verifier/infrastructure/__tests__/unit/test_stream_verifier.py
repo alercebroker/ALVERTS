@@ -60,7 +60,7 @@ class TestLagReport:
 class TestDetectionsReport:
     def test_success_with_check_success(self, verifier):
         streams = [KafkaRequest("test", "test", "test")]
-        tables = [TableRequest("test")]
+        tables = [TableRequest("test", "test")]
         result = verifier("success").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )
@@ -69,7 +69,7 @@ class TestDetectionsReport:
 
     def test_success_with_check_fail(self, verifier):
         streams = [KafkaRequest("test", "test", "test")]
-        tables = [TableRequest("test")]
+        tables = [TableRequest("test", "test")]
         result = verifier("check_fail").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )
@@ -82,7 +82,7 @@ class TestDetectionsReport:
 
     def test_fail_with_kafka_error(self, verifier):
         streams = [KafkaRequest("test", "test", "test")]
-        tables = [TableRequest("test")]
+        tables = [TableRequest("test", "test")]
         result = verifier("external_error", "success").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )
@@ -91,7 +91,7 @@ class TestDetectionsReport:
 
     def test_fail_with_psql_error(self, verifier):
         streams = [KafkaRequest("test", "test", "test")]
-        tables = [TableRequest("test")]
+        tables = [TableRequest("test", "test")]
         result = verifier("success", "external_error").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )

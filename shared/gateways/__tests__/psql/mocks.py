@@ -9,3 +9,6 @@ class MockPsqlService:
             return parser([("oid1", 123), ("oid2", 456)])
         if self.state == "external_error":
             raise Exception("fail")
+
+    def connect(self, db_url: str):
+        return
