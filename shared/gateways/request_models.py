@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 
 
 @dataclass
@@ -13,3 +14,4 @@ class KafkaRequest:
 class TableRequest:
     db_url: str
     table_name: str
+    identifiers: List[str]

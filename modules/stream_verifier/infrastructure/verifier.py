@@ -16,13 +16,11 @@ class StreamVerifier(IStreamVerifier):
         self,
         kafka_service: KafkaService,
         db_service: PsqlService,
-        identifiers: List[str],
     ):
         self.kafka_service = kafka_service
         self.db_service = db_service
         self._entity_parser = EntityParser()
         self._response_model_parser = ResponseModelParser()
-        self._identifiers = identifiers
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)
 
@@ -59,7 +57,9 @@ class StreamVerifier(IStreamVerifier):
 
                     self.db_service.connect(table.db_url)
 
-                    values = self._process_kafka_messages(kafka_response)
+                    values = self._process_kafka_messages(
+                        kafka_response, table.identifiers
+                    )
                     reports.append(
                         self._check_difference(values, table.table_name, parse_function)
                     )
@@ -76,13 +76,13 @@ class StreamVerifier(IStreamVerifier):
             combined_reports.value
         )
 
-    def _process_kafka_messages(self, kafka_response):
+    def _process_kafka_messages(self, kafka_response, identifiers):
         values = []
         for msg in kafka_response.data:
             bytes_msj = BytesIO(msg.value())
             reader = fastavro.reader(bytes_msj)
             data = reader.next()
-            identified_data = [data[identifier] for identifier in self._identifiers]
+            identified_data = [data[identifier] for identifier in identifiers]
             values.append(identified_data)
 
         return values

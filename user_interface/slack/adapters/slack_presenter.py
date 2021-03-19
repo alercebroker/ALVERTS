@@ -146,7 +146,7 @@ class SlackExporter(ReportPresenter):
     def _parse_detections_report_to_string(self, report: DetectionsReportResponseModel):
         text = "Topic {} from {} with group id {} processed {} out of {} alerts with {} missing\n"
         state_text = "Success" if report.success else "Failed"
-        post_message = f"Detections report {state_text}\n"
+        post_message = f"Detections Report {state_text}\n"
         for rep in report.streams:
             text_copy = text
             post_message += text_copy.format(

@@ -42,7 +42,9 @@ class SlackRequestModelCreator(RequestModelCreator):
             )
             request_model.streams.append(kafka_request)
         for req in request["database"]:
-            table_request = TableRequest(req["db_url"], req["table_name"])
+            table_request = TableRequest(
+                req["db_url"], req["table_name"], req["table_identifiers"]
+            )
             request_model.tables.append(table_request)
 
         return request_model

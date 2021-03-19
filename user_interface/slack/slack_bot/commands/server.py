@@ -24,7 +24,7 @@ def create_app():
         {
             "slack": settings.SLACK_CREDENTIALS,
             "streams": settings.KAFKA_STREAMS,
-            "db": {"table_identifiers": ["oid", "candid"]},
+            "database": settings.DATABASE_CONFIG,
         }
     )
     container.wire(modules=[sys.modules[__name__]])
@@ -68,13 +68,30 @@ def command_last_night_objects():
 def command_stream_lag_check(
     controller: ReportController = Provide[SlackContainer.slack_controller],
     exporter: SlackExporter = Provide[SlackContainer.slack_exporter],
-    streams: dict = Provide[SlackContainer.config.streams],
+    streams: list = Provide[SlackContainer.config.streams.lag_report],
 ):
     local_request: Request = request
     exporter.set_view(make_response())
     exporter.set_slack_parameters(local_request.form)
     if exporter.view.status_code == 200:
         controller.get_report(streams, "lag_report")
+    return exporter.view
+
+
+@main.route("/stream_detections_check", methods=["POST"])
+@inject
+def command_stream_detections_check(
+    controller: ReportController = Provide[SlackContainer.slack_controller],
+    exporter: SlackExporter = Provide[SlackContainer.slack_exporter],
+    streams: list = Provide[SlackContainer.config.streams.detections_report],
+    database: list = Provide[SlackContainer.config.database],
+):
+    local_request: Request = request
+    exporter.set_view(make_response())
+    exporter.set_slack_parameters(local_request.form)
+    params = {"streams": streams, "database": database}
+    if exporter.view.status_code == 200:
+        controller.get_report(params, "detections_report")
     return exporter.view
 
 
