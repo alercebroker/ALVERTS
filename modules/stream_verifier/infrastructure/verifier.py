@@ -1,8 +1,8 @@
 from .parsers import EntityParser
-from .request_models import LagReportRequestModel
-from .response_models import LagReportResponseModel
+from .request_models import LagReportRequestModel, DetectionsReportRequestModel
+from .response_models import LagReportResponseModel, DetectionsReportResponseModel
 from modules.stream_verifier.domain import IStreamVerifier
-from typing import List
+from typing import List, Callable
 from shared import KafkaService, Result, PsqlService
 from modules.stream_verifier.infrastructure.parsers import ResponseModelParser
 from shared.error.exceptions import ExternalException
@@ -59,7 +59,7 @@ class StreamVerifier(IStreamVerifier):
 
                     values = self._process_kafka_messages(kafka_response)
                     reports.append(
-                        self._check_difference(values, table, parse_function)
+                        self._check_difference(values, table.table_name, parse_function)
                     )
 
                 self.kafka_service.consume_all(stream, process_function)
@@ -70,7 +70,7 @@ class StreamVerifier(IStreamVerifier):
         combined_reports = Result.combine(reports)
         if not combined_reports.success:
             return combined_reports
-        return self._response_model_parser.to_detection_report_response_model(
+        return self._response_model_parser.to_detections_report_response_model(
             combined_reports.value
         )
 
@@ -92,5 +92,29 @@ class StreamVerifier(IStreamVerifier):
             raise ValueError(err)
 
         str_values = ",\n".join([f"('{val[0]}', {val[1]})" for val in values])
-        QUERY_VALUES = self.create_base_query(table) % str_values
+        QUERY_VALUES = self._create_base_query(table) % str_values
         return self.db_service.execute(QUERY_VALUES, parser)
+
+    def _create_base_query(self, table: str) -> str:
+        """Create base query statement for alert ingested on DB.
+
+        Parameters
+        ----------
+        table : str
+            Description of parameter `table`.
+
+        Returns
+        -------
+        str
+            Base query statement to add values format with QUERY % VALUE_STR.
+
+        """
+        QUERY = f"""
+                    WITH batch_candids (oid, candid) AS (
+                        VALUES %s
+                    )
+                    SELECT batch_candids.oid, batch_candids.candid FROM batch_candids
+                    LEFT JOIN {table} AS d ON batch_candids.candid = d.candid
+                    WHERE d.candid IS NULL
+                """
+        return QUERY

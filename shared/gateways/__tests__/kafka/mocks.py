@@ -5,6 +5,7 @@ from unittest import mock
 from shared.gateways.response_models import KafkaResponse
 from fastavro import writer, parse_schema
 import io
+from confluent_kafka import KafkaException
 
 
 schema = {
@@ -55,15 +56,17 @@ class MockKafkaService:
             return Result.Fail(Exception("fail"))
 
     def consume_all(self, request, process):
-        if self.state == "success":
+        if self.state == "success" or self.state == "check_fail":
             msg1 = mock.MagicMock()
             msg2 = mock.MagicMock()
             avro = io.BytesIO()
             writer(avro, parsed_schema, [records[0]])
-            msg1.value.return_value = avro
+            avro.seek(0)
+            msg1.value.return_value = avro.read()
             avro = io.BytesIO()
             writer(avro, parsed_schema, [records[1]])
-            msg2.value.return_value = avro
+            avro.seek(0)
+            msg2.value.return_value = avro.read()
             response = KafkaResponse(
                 bootstrap_servers=request.bootstrap_servers,
                 topic=request.topic,
@@ -71,3 +74,6 @@ class MockKafkaService:
                 data=[msg1, msg2],
             )
             process(response)
+
+        if self.state == "external_error":
+            raise KafkaException("fail")

@@ -7,3 +7,8 @@ class KafkaRequest:
     group_id: str
     topic: str
     batch_size: int = 1
+
+
+@dataclass
+class TableRequest:
+    table_name: str

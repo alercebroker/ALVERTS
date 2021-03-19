@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from shared.gateways.kafka import KafkaRequest
+from shared.gateways.request_models import KafkaRequest, TableRequest
 from typing import List
 
 

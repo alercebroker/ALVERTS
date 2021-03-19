@@ -11,7 +11,7 @@ class DetectionsReport:
     total_alerts: int
 
     def check_success(self):
-        return len(difference) == 0
+        return len(self.difference) == 0
 
     def processed_alerts(self):
         return self.total_alerts - len(self.difference)
