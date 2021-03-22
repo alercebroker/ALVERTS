@@ -87,10 +87,7 @@ class KafkaService:
 
             for msg in msgs:
                 if msg.error():
-                    if msg.error().code() == KafkaError._PARTITION_EOF:
-                        pass
-                    elif msg.error():
-                        raise KafkaException(msg.error())
+                    raise KafkaException(msg.error())
             consumed_messages += request.batch_size
             response = KafkaResponse(
                 bootstrap_servers=request.bootstrap_servers,
