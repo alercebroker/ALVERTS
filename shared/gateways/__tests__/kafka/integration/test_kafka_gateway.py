@@ -4,6 +4,7 @@ from modules.stream_verifier.infrastructure.parsers import EntityParser
 from shared import Result, ClientException, KafkaService
 from modules.stream_verifier.domain.lag_report import LagReport
 from shared.gateways.request_models import KafkaRequest
+from unittest import mock
 
 
 def consumer_factory(config):
@@ -35,6 +36,23 @@ class TestGetLag:
         assert lag.success
         assert lag.value.total_lag() == 10
         assert not lag.value.check_success()
+
+    def test_get_lag_topic_error(self, kafka_service):
+        stream = KafkaRequest("localhost:9094", "anything", ["non_existent"])
+        lag = self.consumer.get_lag(stream, self.lag_parser.to_lag_report)
+        assert not lag.success
+        assert "Error with kafka message" in str(lag.error)
+
+
+class TestConsumeAll:
+    lag_parser = EntityParser()
+    consumer = KafkaService(consumer_factory)
+
+    def test_consume_all(self, kafka_service, consume):
+        stream = KafkaRequest("localhost:9094", "test_consume_all", "test", 1)
+        process = mock.MagicMock()
+        self.consumer.consume_all(stream, process)
+        assert process.call_count == 10
 
     def test_get_lag_topic_error(self, kafka_service):
         stream = KafkaRequest("localhost:9094", "anything", ["non_existent"])

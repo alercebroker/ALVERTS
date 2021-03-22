@@ -102,7 +102,7 @@ class TestParseDetectionsToString:
         text = exporter._parse_detections_report_to_string(report)
         assert (
             text
-            == """Detections report Failed
+            == """Detections Report Failed
 Topic test from test with group id test processed 0 out of 3 alerts with 3 missing\n"""
         )
 
@@ -112,6 +112,6 @@ Topic test from test with group id test processed 0 out of 3 alerts with 3 missi
         text = exporter._parse_detections_report_to_string(report)
         assert (
             text
-            == """Detections report Success
+            == """Detections Report Success
 Topic test from test with group id test processed 3 out of 3 alerts with 0 missing\n"""
         )

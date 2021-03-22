@@ -58,7 +58,10 @@ class KafkaService:
             consumer = self.create_consumer(request)
             created = True
         topics = [request.topic]
-        consumer.subscribe(topics=topics)
+        try:
+            self.consume_one(request, consumer=consumer)
+        except KafkaException as e:
+            return Result.Fail(ExternalException(f"Error with kafka message: {e}"))
         partitions = consumer.assignment()
         total_messages = sum(
             self.get_messages_per_partition(partitions=partitions, consumer=consumer)
@@ -66,10 +69,11 @@ class KafkaService:
         consumed_messages = 0
         retries = 3
         retry_count = 0
-        while total_messages > 0 and consumed_messages <= total_messages:
+        while total_messages > 0 and consumed_messages < total_messages:
             msgs = consumer.consume(request.batch_size, timeout=10)
             if len(msgs) == 0:
                 if retry_count == retries:
+                    # Process in case there is no messages
                     response = KafkaResponse(
                         bootstrap_servers=request.bootstrap_servers,
                         topic=request.topic,
@@ -95,6 +99,7 @@ class KafkaService:
                 data=msgs,
             )
             process(response)
+            consumer.commit()
         consumer.close()
         del consumer
 

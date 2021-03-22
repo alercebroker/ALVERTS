@@ -33,7 +33,13 @@ class TestToRequestModel:
                         "topic": "test",
                     }
                 ],
-                "database": [{"db_url": "test", "table_name": "test"}],
+                "database": [
+                    {
+                        "db_url": "test",
+                        "table_name": "test",
+                        "table_identifiers": ["oid", "candid"],
+                    }
+                ],
             },
             "detections_report",
         )
