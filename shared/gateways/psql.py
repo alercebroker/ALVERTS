@@ -15,7 +15,8 @@ class PsqlService:
     def connect(self, db_url: str):
         if self.db_url != db_url:
             self.db_url = db_url
-            self._engine.dispose()
+            if self._engine:
+                self._engine.dispose()
             self._engine = create_engine(db_url, echo=True)
             self._session_factory = orm.scoped_session(
                 orm.sessionmaker(
