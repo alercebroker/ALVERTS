@@ -11,12 +11,14 @@ class PsqlService:
     def __init__(self) -> None:
         self._init_log()
         self.db_url = ""
+        self._engine = None
 
     def connect(self, db_url: str):
         if self.db_url != db_url:
             self.db_url = db_url
             if self._engine:
                 self._engine.dispose()
+                self._engine = None
             self._engine = create_engine(db_url, echo=True)
             self._session_factory = orm.scoped_session(
                 orm.sessionmaker(
