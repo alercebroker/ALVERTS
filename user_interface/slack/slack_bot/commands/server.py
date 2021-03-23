@@ -67,32 +67,30 @@ def command_last_night_objects():
 @inject
 def command_stream_lag_check(
     controller: ReportController = Provide[SlackContainer.slack_controller],
-    exporter: SlackExporter = Provide[SlackContainer.slack_exporter],
     streams: list = Provide[SlackContainer.config.streams.lag_report],
 ):
     local_request: Request = request
-    exporter.set_view(make_response())
-    exporter.set_slack_parameters(local_request.form)
-    if exporter.view.status_code == 200:
+    controller.presenter.set_view(make_response())
+    controller.presenter.set_slack_parameters(local_request.form)
+    if controller.presenter.view.status_code == 200:
         controller.get_report(streams, "lag_report")
-    return exporter.view
+    return controller.presenter.view
 
 
 @main.route("/stream_detections_check", methods=["POST"])
 @inject
 def command_stream_detections_check(
     controller: ReportController = Provide[SlackContainer.slack_controller],
-    exporter: SlackExporter = Provide[SlackContainer.slack_exporter],
     streams: list = Provide[SlackContainer.config.streams.detections_report],
     database: list = Provide[SlackContainer.config.database],
 ):
     local_request: Request = request
-    exporter.set_view(make_response())
-    exporter.set_slack_parameters(local_request.form)
+    controller.presenter.set_view(make_response())
+    controller.presenter.set_slack_parameters(local_request.form)
     params = {"streams": streams, "database": database}
-    if exporter.view.status_code == 200:
+    if controller.presenter.view.status_code == 200:
         controller.get_report(params, "detections_report")
-    return exporter.view
+    return controller.presenter.view
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ STAGE = os.getenv("BOT_STAGE", "develop")
 SLACK_CREDENTIALS = {
     "SLACK_BOT_TOKEN": os.getenv("SLACK_BOT_TOKEN", ""),
     "SLACK_SIGNATURE": os.getenv("SLACK_SIGNATURE"),
+    "channel": os.getenv("SLACK_CHANNEL"),
 }
 
 PROFILE = False
@@ -87,6 +88,17 @@ USER_STAGE = os.getenv("DB_USER_STAGE", "user")
 PASSWORD_STAGE = os.getenv("DB_PASSWORD_STAGE", "pass")
 PORT_STAGE = os.getenv("DB_PORT_STAGE", 5432)
 
+OLD_DATABASE_CONFIG = {
+    "SQL": {
+        "ENGINE": "postgresql",
+        "HOST": HOST_STAGE,
+        "USER": USER_STAGE,
+        "PORT": PORT_STAGE,
+        "PASSWORD": PASSWORD_STAGE,
+        "DATABASE": DATABASE_STAGE,
+        "SQLALCHEMY_DATABASE_URL": f"postgresql://{USER_STAGE}:{PASSWORD_STAGE}@{HOST_STAGE}:{PORT_STAGE}/{DATABASE_STAGE}",
+    },
+}
 
 DATABASE_CONFIG = [
     {
@@ -107,10 +119,7 @@ if STAGE == "production":
     LAST_NIGHT_STATS_SCHEDULE = ["10:00", "11:00", "12:00"]
 
 elif STAGE == "develop":
-    LAST_NIGHT_STATS_CHANNELS = ["blog-javier"]
-    LAST_NIGHT_STATS_SCHEDULE = ["17:15", "17:16"]
-else:
-    LAST_NIGHT_STATS_CHANNELS = ["chikigang"]
+    LAST_NIGHT_STATS_CHANNELS = ["test-bots"]
     LAST_NIGHT_STATS_SCHEDULE = ["10:00", "11:00", "12:00"]
 
 SLACK_SCHEDULE_CONFIG = {
@@ -120,8 +129,12 @@ SLACK_SCHEDULE_CONFIG = {
             "schedule": LAST_NIGHT_STATS_SCHEDULE,
         },
         "stream_lag_report": {
-            "channels": ["chikigang"],
-            "schedule": ["09:00", "10:00", "11:00", "12:00", "09:46"],
+            "channels": LAST_NIGHT_STATS_CHANNELS,
+            "schedule": LAST_NIGHT_STATS_SCHEDULE,
+        },
+        "detections_report": {
+            "channels": LAST_NIGHT_STATS_CHANNELS,
+            "schedule": LAST_NIGHT_STATS_SCHEDULE,
         },
     }
 }

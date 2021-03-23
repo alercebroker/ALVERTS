@@ -39,6 +39,7 @@ class SlackExporter(ReportPresenter):
 
     def export_lag_report(self, report: LagReportResponseModel):
         try:
+            print(self.slack_parameters)
             text = self._parse_lag_report_to_string(report)
         except Exception as e:
             self.handle_application_error(ClientException(f"Error parsing report: {e}"))

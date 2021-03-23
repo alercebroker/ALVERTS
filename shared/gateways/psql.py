@@ -43,7 +43,7 @@ class PsqlService:
         try:
             yield session
         except Exception as e:
-            logger.exception("Session rollback because of exception")
+            self.logger.exception("Session rollback because of exception")
             session.rollback()
             raise e
         finally:

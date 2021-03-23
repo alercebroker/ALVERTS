@@ -1,12 +1,15 @@
-from user_interface.slack.slack_bot.settings import DATABASE
+from user_interface.slack.slack_bot.settings import OLD_DATABASE_CONFIG
 from user_interface.slack.slack_bot.utils import queries
 from user_interface.slack.slack_bot.utils.db import session_options
-from core.alert_system import AlertSystem
+from dependency_injector.wiring import inject, Provide
 from db_plugins.db.sql import SQLConnection
 from slack.errors import SlackApiError
 from slack.web.client import WebClient
 from typing import List
 from flask import make_response
+from user_interface.slack.slack_bot.container import SlackContainer
+from user_interface.slack.adapters.slack_presenter import SlackExporter
+from user_interface.adapters.controller import ReportController
 
 import itertools
 import logging
@@ -15,14 +18,13 @@ import time
 
 
 class ScheduledBot:
-    def __init__(
-        self, alert_system: AlertSystem, config: dict, log_level="INFO", db_conn=None
-    ):
+    def __init__(self, config: dict, log_level="INFO", db_conn=None):
         self._init_log(log_level)
-        self.alert_system = alert_system
         self.db = db_conn or SQLConnection()
         self.db.connect(
-            config=DATABASE["SQL"], session_options=session_options, use_scoped=True
+            config=OLD_DATABASE_CONFIG["SQL"],
+            session_options=session_options,
+            use_scoped=True,
         )
         self.config = config
 
@@ -49,13 +51,41 @@ class ScheduledBot:
         self._send_message(channel, last_night_report)
         self.logger.info("Report sent: last_night_stats")
 
-    def stream_lag_report(self, channel: str):
-        slack_controller = self.alert_system.get_controller("slack")
+    @inject
+    def stream_lag_report(
+        self,
+        channel: str,
+        controller: ReportController = Provide[SlackContainer.slack_controller],
+        streams: list = Provide[SlackContainer.config.streams.lag_report],
+    ):
         request = {"channel_name": channel, "user_name": "bot"}
         response = {"data": "", "status_code": 200}
-        slack_controller.get_stream_lag_report(request, response)
+        controller.presenter.set_view(response)
+        controller.presenter.set_slack_parameters(request)
+        if controller.presenter.view["status_code"] == 200:
+            controller.get_report(streams, "lag_report")
         self.logger.info(
             f"Report: stream_lag_report, status: { response[ 'status_code' ] }, data: {response['data']}"
+        )
+
+    @inject
+    def detections_report(
+        self,
+        channel: str,
+        controller: ReportController = Provide[SlackContainer.slack_controller],
+        streams: list = Provide[SlackContainer.config.streams.detections_report],
+        database: list = Provide[SlackContainer.config.database],
+    ):
+        self.logger.info("Producing detections report")
+        request = {"channel_name": channel, "user_name": "bot"}
+        response = {"data": "", "status_code": 200}
+        controller.presenter.set_view(response)
+        controller.presenter.set_slack_parameters(request)
+        if controller.presenter.view["status_code"] == 200:
+            params = {"streams": streams, "database": database}
+            controller.get_report(params, "detections_report")
+        self.logger.info(
+            f"Report: detections_report, status: { response[ 'status_code' ] }, data: {response['data']}"
         )
 
     def schedule(self) -> List:

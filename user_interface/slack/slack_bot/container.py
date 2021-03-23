@@ -16,21 +16,27 @@ from modules.stream_verifier.use_cases.get_detections_report import GetDetection
 
 class SlackContainer(containers.DeclarativeContainer):
     config = providers.Configuration()
+
     # gateways
     consumer_factory = providers.Factory(Consumer)
     kafka_service = providers.Singleton(
         KafkaService, consumer_creator=consumer_factory.provider
     )
     db_service = providers.Singleton(PsqlService)
+
+    slack_client = providers.Singleton(WebClient, token=config.slack.SLACK_BOT_TOKEN)
+    slack_signature_verifier = providers.Singleton(
+        SignatureVerifier, signing_secret=config.slack.SLACK_SIGNATURE
+    )
+
+    # Main service
     stream_verifier = providers.Singleton(
         StreamVerifier,
         kafka_service=kafka_service,
         db_service=db_service,
     )
-    slack_client = providers.Singleton(WebClient, token=config.slack.SLACK_BOT_TOKEN)
-    slack_signature_verifier = providers.Singleton(
-        SignatureVerifier, signing_secret=config.slack.SLACK_SIGNATURE
-    )
+
+    # User interface
     slack_exporter = providers.Factory(
         SlackExporter,
         client=slack_client,
