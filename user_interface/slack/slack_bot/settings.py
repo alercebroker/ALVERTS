@@ -8,7 +8,6 @@ STAGE = os.getenv("BOT_STAGE", "develop")
 SLACK_CREDENTIALS = {
     "SLACK_BOT_TOKEN": os.getenv("SLACK_BOT_TOKEN", ""),
     "SLACK_SIGNATURE": os.getenv("SLACK_SIGNATURE"),
-    "channel": os.getenv("SLACK_CHANNEL"),
 }
 
 PROFILE = False

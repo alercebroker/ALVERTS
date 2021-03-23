@@ -3,48 +3,14 @@ from user_interface.slack.slack_bot.commands.server import create_app
 from dependency_injector import providers
 from unittest.mock import MagicMock
 import os
+import datetime
 
 
 @pytest.fixture
 def app():
-    SLACK_CREDENTIALS = {
-        "SLACK_BOT_TOKEN": os.getenv("SLACK_TOKEN"),
-        "SLACK_SIGNATURE": os.getenv("SLACK_SIGNATURE"),
-    }
-
-    KAFKA_STREAMS = {
-        "lag_report": [
-            {
-                "bootstrap_servers": "localhost:9094",
-                "topic": "test",
-                "group_id": "test",
-            },
-        ],
-        "detections_report": [
-            {
-                "bootstrap_servers": "localhost:9094",
-                "topic": "test",
-                "group_id": "test",
-            },
-        ],
-    }
-
-    DATABASE_CONFIG = [
-        {
-            "table_identifiers": ["objectId", "candid"],
-            "db_url": "postgresql://postgres:postgres@localhost:5432/postgres",
-            "table_name": "detection",
-        },
-    ]
 
     app = create_app()
-    app.container.config.from_dict(
-        {
-            "slack": SLACK_CREDENTIALS,
-            "streams": KAFKA_STREAMS,
-            "database": DATABASE_CONFIG,
-        }
-    )
+
     yield app
     app.container.unwire()
 
@@ -62,7 +28,19 @@ def client():
 
 class TestStreamLagCheck:
     def test_get_lag(self, kafka_service, consume, client, app):
-        consume("test", "test", 1, 1)
+        consume("test_get_lag_success", "test", 1, 1)
+        KAFKA_STREAMS = {
+            "lag_report": [
+                {
+                    "bootstrap_servers": "localhost:9094",
+                    "topic": "test",
+                    "group_id": "test_get_lag_success",
+                },
+            ],
+        }
+        app.container.config.from_dict(
+            {"slack": {}, "streams": KAFKA_STREAMS, "database": {}}
+        )
         slack_client_mock = MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         app.container.slack_client.override(providers.Object(slack_client_mock))
@@ -82,6 +60,29 @@ class TestDetectionsCheck:
     def test_should_return_success(
         self, kafka_service, psql_service, init_first_db, client, app
     ):
+        KAFKA_STREAMS = {
+            "detections_report": [
+                {
+                    "bootstrap_servers": "localhost:9094",
+                    "topic": "test",
+                    "group_id": "test_detections_report_success",
+                },
+            ],
+        }
+        DATABASE_CONFIG = [
+            {
+                "table_identifiers": ["objectId", "candid"],
+                "db_url": "postgresql://postgres:postgres@localhost:5432/postgres",
+                "table_name": "detection",
+            },
+        ]
+        app.container.config.from_dict(
+            {
+                "slack": {},
+                "streams": KAFKA_STREAMS,
+                "database": DATABASE_CONFIG,
+            }
+        )
         init_first_db(insert=True)
         slack_client_mock = MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -102,6 +103,29 @@ Topic test from localhost:9094 with group id test processed 1 out of 1 alerts wi
     def test_should_return_check_fail(
         self, kafka_service, psql_service, init_first_db, client, app
     ):
+        KAFKA_STREAMS = {
+            "detections_report": [
+                {
+                    "bootstrap_servers": "localhost:9094",
+                    "topic": "test",
+                    "group_id": "test_detections_report_fail",
+                },
+            ],
+        }
+        DATABASE_CONFIG = [
+            {
+                "table_identifiers": ["objectId", "candid"],
+                "db_url": "postgresql://postgres:postgres@localhost:5432/postgres",
+                "table_name": "detection",
+            },
+        ]
+        app.container.config.from_dict(
+            {
+                "slack": {},
+                "streams": KAFKA_STREAMS,
+                "database": DATABASE_CONFIG,
+            }
+        )
         init_first_db(insert=False)
         slack_client_mock = MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -134,12 +158,12 @@ Topic test from localhost:9094 with group id test processed 0 out of 1 alerts wi
                 {
                     "bootstrap_servers": "localhost:9094",
                     "topic": "test",
-                    "group_id": "test",
+                    "group_id": "test_two_databases_success",
                 },
                 {
                     "bootstrap_servers": "localhost:9094",
                     "topic": "test2",
-                    "group_id": "test2",
+                    "group_id": "test2_two_databases_success",
                 },
             ],
         }
@@ -158,6 +182,7 @@ Topic test from localhost:9094 with group id test processed 0 out of 1 alerts wi
         ]
         app.container.config.from_dict(
             {
+                "slack": {},
                 "streams": KAFKA_STREAMS,
                 "database": DATABASE_CONFIG,
             }
@@ -196,12 +221,12 @@ Topic test2 from localhost:9094 with group id test2 processed 1 out of 1 alerts 
                 {
                     "bootstrap_servers": "localhost:9094",
                     "topic": "test",
-                    "group_id": "test",
+                    "group_id": "test_two_databases_fail",
                 },
                 {
                     "bootstrap_servers": "localhost:9094",
                     "topic": "test2",
-                    "group_id": "test2",
+                    "group_id": "test2_two_databases_fail",
                 },
             ],
         }
@@ -220,6 +245,7 @@ Topic test2 from localhost:9094 with group id test2 processed 1 out of 1 alerts 
         ]
         app.container.config.from_dict(
             {
+                "slack": {},
                 "streams": KAFKA_STREAMS,
                 "database": DATABASE_CONFIG,
             }

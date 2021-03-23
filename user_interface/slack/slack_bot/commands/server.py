@@ -57,7 +57,6 @@ def command_last_night_objects():
             channel=f"#{channel}", text=text
         )
     except SlackApiError as e:
-        print(e)
         logging.error("Request to Slack API Failed: {}.".format(e.response))
         return make_response("", e.response)
     return make_response("", response.status_code)

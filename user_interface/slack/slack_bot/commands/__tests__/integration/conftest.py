@@ -95,7 +95,6 @@ def consume():
                         raise KafkaException(m.error())
                 else:
                     messages += 1
-                    print(m)
                     if messages == max_messages:
                         break
             consumer.commit(asynchronous=False)
@@ -165,39 +164,53 @@ def init_db(insert: bool, config: dict):
         db.session.commit()
 
 
+def remove_db(config: dict):
+    db = SQLConnection()
+    db.connect(config)
+    db.drop_db()
+
+
 @pytest.fixture
 def init_first_db():
+    config = {
+        "SQL": {
+            "ENGINE": "postgresql",
+            "HOST": "localhost",
+            "USER": "postgres",
+            "PASSWORD": "postgres",
+            "PORT": 5432,  # postgresql tipically runs on port 5432. Notice that we use an int here.
+            "DB_NAME": "postgres",
+        },
+        "SQLALCHEMY_DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/postgres",
+    }
+
     def _init(insert: bool):
-        config = {
-            "SQL": {
-                "ENGINE": "postgresql",
-                "HOST": "localhost",
-                "USER": "postgres",
-                "PASSWORD": "postgres",
-                "PORT": 5432,  # postgresql tipically runs on port 5432. Notice that we use an int here.
-                "DB_NAME": "postgres",
-            },
-            "SQLALCHEMY_DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/postgres",
-        }
+
         init_db(insert, config)
 
-    return _init
+    yield _init
+
+    remove_db(config)
 
 
 @pytest.fixture
 def init_second_db():
+    config = {
+        "SQL": {
+            "ENGINE": "postgresql",
+            "HOST": "localhost",
+            "USER": "postgres",
+            "PASSWORD": "postgres",
+            "PORT": 5433,  # postgresql tipically runs on port 5432. Notice that we use an int here.
+            "DB_NAME": "postgres",
+        },
+        "SQLALCHEMY_DATABASE_URL": "postgresql://postgres:postgres@localhost:5433/postgres",
+    }
+
     def _init(insert: bool):
-        config = {
-            "SQL": {
-                "ENGINE": "postgresql",
-                "HOST": "localhost",
-                "USER": "postgres",
-                "PASSWORD": "postgres",
-                "PORT": 5433,  # postgresql tipically runs on port 5432. Notice that we use an int here.
-                "DB_NAME": "postgres",
-            },
-            "SQLALCHEMY_DATABASE_URL": "postgresql://postgres:postgres@localhost:5433/postgres",
-        }
+
         init_db(insert, config)
 
-    return _init
+    yield _init
+
+    remove_db(config)
