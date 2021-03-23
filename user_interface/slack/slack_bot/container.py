@@ -46,8 +46,8 @@ class SlackContainer(containers.DeclarativeContainer):
         ReportController,
         presenter=slack_exporter,
         use_cases=providers.Dict(
-            lag_report=providers.Singleton(GetLagReport, verifier=stream_verifier),
-            detections_report=providers.Singleton(
+            lag_report=providers.Factory(GetLagReport, verifier=stream_verifier),
+            detections_report=providers.Factory(
                 GetDetectionsReport, verifier=stream_verifier
             ),
         ),

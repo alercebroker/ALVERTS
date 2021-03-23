@@ -45,6 +45,7 @@ class StreamVerifier(IStreamVerifier):
     def get_detections_report(
         self, request_model: DetectionsReportRequestModel
     ) -> Result[DetectionsReportResponseModel, Exception]:
+        self.logger.info("Getting lag report")
         reports = []
         for stream, table in request_model.params():
             try:
