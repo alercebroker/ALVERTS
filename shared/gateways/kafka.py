@@ -1,4 +1,4 @@
-from confluent_kafka import Consumer, KafkaError, KafkaException
+from confluent_kafka import Consumer, KafkaError, KafkaException, OFFSET_BEGINNING
 from shared import Result, ClientException
 from .request_models import KafkaRequest
 from .response_models import KafkaResponse
@@ -7,6 +7,10 @@ from shared.error.exceptions import ExternalException
 
 T = TypeVar("T")
 E = TypeVar("E")
+
+
+class EmptyBatch(Exception):
+    pass
 
 
 class KafkaService:
@@ -29,12 +33,14 @@ class KafkaService:
         if error.code() == KafkaError._PARTITION_EOF:
             return
         if error.code() == KafkaError._ALL_BROKERS_DOWN:
-            raise ConnectionRefusedError("All Kafka Brokers are down")
+            return
+            # raise ConnectionRefusedError("All Kafka Brokers are down")
         # Connection Refused
-        # elif error.code() == KafkaError._TRANSPORT:
-        #     raise ConnectionRefusedError(
-        #         "Something went wrong trying to connect to Kafka"
-        #     )
+        elif error.code() == KafkaError._TRANSPORT:
+            return
+            # raise ConnectionRefusedError(
+            #     "Something went wrong trying to connect to Kafka"
+            # )
         # Resolve error (_RESOLVE)
         elif error.code() == KafkaError._RESOLVE:
             raise ConnectionRefusedError(
@@ -52,7 +58,7 @@ class KafkaService:
 
         while True:
             try:
-                msg = consumer.poll(timeout=10)
+                msg = consumer.poll(timeout=30)
             except Exception as e:
                 raise e
             else:
@@ -78,37 +84,30 @@ class KafkaService:
                 },
             )
             created = True
-        topics = [request.topic]
-        try:
-            self.consume_one(request, consumer=consumer)
-        except Exception as e:
-            return Result.Fail(ExternalException(f"Error with kafka message: {e}"))
+        self.consume_one(request, consumer=consumer)
         partitions = consumer.assignment()
+        if len(partitions) == 0:
+            raise ClientException(f"No partitions found for topics {request.topic}")
         total_messages = sum(
             self.get_messages_per_partition(partitions=partitions, consumer=consumer)
         )
+        self.reset_offset(partitions, consumer)
         consumed_messages = 0
         retries = 3
         retry_count = 0
         while total_messages > 0 and consumed_messages < total_messages:
             try:
-                msgs = consumer.consume(request.batch_size, timeout=10)
+                msgs = consumer.consume(request.batch_size, timeout=30)
+                if len(msgs) == 0:
+                    if retry_count == retries:
+                        raise EmptyBatch(
+                            "Batch with no messages. Topic might be empty or there was an error consuming"
+                        )
+                    retry_count += 1
+                    continue
             except Exception as e:
                 raise e
             else:
-                if len(msgs) == 0:
-                    if retry_count == retries:
-                        # Process in case there is no messages
-                        response = KafkaResponse(
-                            bootstrap_servers=request.bootstrap_servers,
-                            topic=request.topic,
-                            group_id=request.group_id,
-                            data=msgs,
-                        )
-                        process(response)
-                        break
-                    retry_count += 1
-                    continue
                 consumed_messages += request.batch_size
                 response = KafkaResponse(
                     bootstrap_servers=request.bootstrap_servers,
@@ -173,3 +172,8 @@ class KafkaService:
             consumer.close()
             del consumer
         return high_offsets
+
+    def reset_offset(self, partitions, consumer):
+        for part in partitions:
+            part.offset = OFFSET_BEGINNING
+            consumer.seek(part)

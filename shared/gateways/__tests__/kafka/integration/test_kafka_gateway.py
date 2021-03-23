@@ -41,14 +41,14 @@ class TestGetLag:
         stream = KafkaRequest("localhost:9094", "anything", "non_existent")
         lag = self.consumer.get_lag(stream, self.parser.to_lag_report)
         assert not lag.success
-        assert "Error with kafka message" in str(lag.error)
+        assert "No partitions found for topics non_existent" in str(lag.error)
 
 
 class TestConsumeAll:
     parser = EntityParser()
     consumer = KafkaService(consumer_factory)
 
-    def test_consume_all(self, kafka_service, consume):
+    def test_consume_all(self, kafka_service):
         stream = KafkaRequest("localhost:9094", "test_consume_all", "test", 1)
         process = mock.MagicMock()
         self.consumer.consume_all(stream, process)
@@ -56,6 +56,6 @@ class TestConsumeAll:
 
     def test_consume_all_topic_error(self, kafka_service):
         stream = KafkaRequest("localhost:9094", "anything", "non_existent")
-        lag = self.consumer.consume_all(stream, mock.MagicMock())
-        assert not lag.success
-        assert "Error with kafka message" in str(lag.error)
+        with pytest.raises(ClientException) as e:
+            lag = self.consumer.consume_all(stream, mock.MagicMock())
+            assert "No partitions found for topics non_existent" in str(e)

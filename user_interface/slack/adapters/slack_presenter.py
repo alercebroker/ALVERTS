@@ -39,25 +39,13 @@ class SlackExporter(ReportPresenter):
 
     def export_lag_report(self, report: LagReportResponseModel):
         try:
-            channel = self.slack_parameters.get("channel_name")
-        except Exception as e:
-            self.handle_client_error(
-                ClientException(f"slack parameters not provided: {e}")
-            )
-            return
-
-        try:
             text = self._parse_lag_report_to_string(report)
         except Exception as e:
             self.handle_application_error(ClientException(f"Error parsing report: {e}"))
             return
 
-        try:
-            post_response = self.client.chat_postMessage(
-                channel=f"#{channel}", text=text
-            )
-        except Exception as e:
-            self.handle_external_error(ExternalException(f"Error sending message: {e}"))
+        post_response = self.post_to_slack(text)
+        if not post_response:
             return
 
         if isinstance(self.view, dict):
@@ -67,25 +55,13 @@ class SlackExporter(ReportPresenter):
 
     def export_detections_report(self, report: DetectionsReportResponseModel):
         try:
-            channel = self.slack_parameters.get("channel_name")
-        except Exception as e:
-            self.handle_client_error(
-                ClientException(f"slack parameters not provided: {e}")
-            )
-            return
-
-        try:
             text = self._parse_detections_report_to_string(report)
         except Exception as e:
             self.handle_application_error(ClientException(f"Error parsing report: {e}"))
             return
 
-        try:
-            post_response = self.client.chat_postMessage(
-                channel=f"#{channel}", text=text
-            )
-        except Exception as e:
-            self.handle_external_error(ExternalException(f"Error sending message: {e}"))
+        post_response = self.post_to_slack(text)
+        if not post_response:
             return
 
         if isinstance(self.view, dict):
@@ -159,3 +135,21 @@ class SlackExporter(ReportPresenter):
             )
 
         return post_message
+
+    def post_to_slack(self, text: str):
+        try:
+            channel = self.slack_parameters.get("channel_name")
+        except Exception as e:
+            self.handle_client_error(
+                ClientException(f"slack parameters not provided: {e}")
+            )
+            return
+        try:
+            post_response = self.client.chat_postMessage(
+                channel=f"#{channel}", text=text
+            )
+        except Exception as e:
+            self.handle_external_error(ExternalException(f"Error sending message: {e}"))
+            return
+        else:
+            return post_response

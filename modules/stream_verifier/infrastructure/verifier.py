@@ -91,7 +91,7 @@ class StreamVerifier(IStreamVerifier):
         if len(values) == 0:
             err = "No values passed, the topic is empty or something went wrong consuming."
             self.logger.error(err)
-            raise ValueError(err)
+            return Result.Fail(ValueError(err))
 
         str_values = ",\n".join([f"('{val[0]}', {val[1]})" for val in values])
         QUERY_VALUES = self._create_base_query(table) % str_values

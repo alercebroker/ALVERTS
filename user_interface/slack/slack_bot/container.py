@@ -31,12 +31,12 @@ class SlackContainer(containers.DeclarativeContainer):
     slack_signature_verifier = providers.Singleton(
         SignatureVerifier, signing_secret=config.slack.SLACK_SIGNATURE
     )
-    slack_exporter = providers.Singleton(
+    slack_exporter = providers.Factory(
         SlackExporter,
         client=slack_client,
         signature_verifier=slack_signature_verifier,
     )
-    slack_controller = providers.Singleton(
+    slack_controller = providers.Factory(
         ReportController,
         presenter=slack_exporter,
         use_cases=providers.Dict(
