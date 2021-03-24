@@ -67,7 +67,7 @@ class StreamVerifier(IStreamVerifier):
 
                 self.kafka_service.consume_all(stream, process_function)
             except Exception as e:
-                err = f"Error with kafka message {e}"
+                err = f"Error with kafka message or database {e}"
                 self.logger.error(err)
                 return Result.Fail(ExternalException(err))
         combined_reports = Result.combine(reports)
