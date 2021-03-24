@@ -37,8 +37,11 @@ class SlackRequestModelCreator(RequestModelCreator):
     def _parse_detections_request_model(self, request: DetectionsRequest):
         request_model = DetectionsReportRequestModel()
         for req in request["streams"]:
+            batch_size = 1
+            if "batch_size" in req:
+                batch_size = req["batch_size"]
             kafka_request = KafkaRequest(
-                req["bootstrap_servers"], req["group_id"], req["topic"]
+                req["bootstrap_servers"], req["group_id"], req["topic"], batch_size
             )
             request_model.streams.append(kafka_request)
         for req in request["database"]:
