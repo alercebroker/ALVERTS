@@ -1,3 +1,4 @@
 dependency-injector
 confluent-kafka
+fastavro
 git+https://github.com/alercebroker/db-plugins.git

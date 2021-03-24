@@ -52,3 +52,16 @@ class ReportController:
             }
 
             return callbacks
+        if report_type == "detections_report":
+
+            def on_success(response_model: LagReportResponseModel):
+                self.presenter.export_detections_report(response_model)
+
+            callbacks = {
+                "success": on_success,
+                "client_error": on_client_error,
+                "external_error": on_external_error,
+                "application_error": on_application_error,
+            }
+
+            return callbacks

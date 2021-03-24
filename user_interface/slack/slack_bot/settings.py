@@ -16,7 +16,7 @@ PROFILE = False
 # KAFKA TOPICS SECTION
 yesterday = datetime.datetime.today() - datetime.timedelta(1)
 date = yesterday.strftime("%Y%m%d")
-KAFKA_STREAMS = [
+KAFKA_STREAMS_LAG_REPORT = [
     {
         "topic": f"ztf_{date}_programid1_aux",
         "bootstrap_servers": "kafka1.alerce.online:9092,kafka2.alerce.online:9092,kafka3.alerce.online:9092",
@@ -54,15 +54,63 @@ KAFKA_STREAMS = [
     },
 ]
 
-# DATABASE SECTION
-HOST = os.getenv("DB_HOST", "localhost")
-DATABASE = os.getenv("DB_DATABASE", "local")
-USER = os.getenv("DB_USER", "user")
-PASSWORD = os.getenv("DB_PASSWORD", "pass")
-PORT = os.getenv("DB_PORT", 5432)
-SQLALCHEMY_DATABASE_URL = f"postgresql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
+KAFKA_STREAMS_DETECTIONS_REPORT = [
+    {
+        "topic": f"ztf_{date}_programid1_aux",
+        "bootstrap_servers": "kafka1.alerce.online:9092,kafka2.alerce.online:9092,kafka3.alerce.online:9092",
+        "group_id": f"report_{date}",
+    },
+    {
+        "topic": f"ztf_{date}_programid1_aux",
+        "bootstrap_servers": "10.0.2.14:9092,10.0.2.181:9092,10.0.2.62:9092",
+        "group_id": f"report_{date}",
+    },
+]
 
-DATABASE = {"SQL": {"SQLALCHEMY_DATABASE_URL": SQLALCHEMY_DATABASE_URL}}
+KAFKA_STREAMS = {
+    "lag_report": KAFKA_STREAMS_LAG_REPORT,
+    "detections_report": KAFKA_STREAMS_DETECTIONS_REPORT,
+}
+
+# DATABASE SECTION
+
+
+HOST_PROD = os.getenv("DB_HOST_PROD", "localhost")
+DATABASE_PROD = os.getenv("DB_DATABASE_PROD", "local")
+USER_PROD = os.getenv("DB_USER_PROD", "user")
+PASSWORD_PROD = os.getenv("DB_PASSWORD_PROD", "pass")
+PORT_PROD = os.getenv("DB_PORT_PROD", 5432)
+
+HOST_STAGE = os.getenv("DB_HOST_STAGE", "localhost")
+DATABASE_STAGE = os.getenv("DB_DATABASE_STAGE", "local")
+USER_STAGE = os.getenv("DB_USER_STAGE", "user")
+PASSWORD_STAGE = os.getenv("DB_PASSWORD_STAGE", "pass")
+PORT_STAGE = os.getenv("DB_PORT_STAGE", 5432)
+
+OLD_DATABASE_CONFIG = {
+    "SQL": {
+        "ENGINE": "postgresql",
+        "HOST": HOST_STAGE,
+        "USER": USER_STAGE,
+        "PORT": PORT_STAGE,
+        "PASSWORD": PASSWORD_STAGE,
+        "DATABASE": DATABASE_STAGE,
+        "SQLALCHEMY_DATABASE_URL": f"postgresql://{USER_STAGE}:{PASSWORD_STAGE}@{HOST_STAGE}:{PORT_STAGE}/{DATABASE_STAGE}",
+    },
+}
+
+DATABASE_CONFIG = [
+    {
+        "table_identifiers": ["oid", "candid"],
+        "db_url": f"postgresql://{USER_PROD}:{PASSWORD_PROD}@{HOST_PROD}:{PORT_PROD}/{DATABASE_PROD}",
+        "table_name": "detections",
+    },
+    {
+        "table_identifiers": ["oid", "candid"],
+        "db_url": f"postgresql://{USER_STAGE}:{PASSWORD_STAGE}@{HOST_STAGE}:{PORT_STAGE}/{DATABASE_STAGE}",
+        "table_name": "detections",
+    },
+]
 
 # SLACK SCHEDULE SECTION
 if STAGE == "production":
@@ -70,10 +118,7 @@ if STAGE == "production":
     LAST_NIGHT_STATS_SCHEDULE = ["10:00", "11:00", "12:00"]
 
 elif STAGE == "develop":
-    LAST_NIGHT_STATS_CHANNELS = ["blog-javier"]
-    LAST_NIGHT_STATS_SCHEDULE = ["17:15", "17:16"]
-else:
-    LAST_NIGHT_STATS_CHANNELS = ["chikigang"]
+    LAST_NIGHT_STATS_CHANNELS = ["test-bots"]
     LAST_NIGHT_STATS_SCHEDULE = ["10:00", "11:00", "12:00"]
 
 SLACK_SCHEDULE_CONFIG = {
@@ -83,8 +128,12 @@ SLACK_SCHEDULE_CONFIG = {
             "schedule": LAST_NIGHT_STATS_SCHEDULE,
         },
         "stream_lag_report": {
-            "channels": ["chikigang"],
-            "schedule": ["09:00", "10:00", "11:00", "12:00", "09:46"],
+            "channels": LAST_NIGHT_STATS_CHANNELS,
+            "schedule": LAST_NIGHT_STATS_SCHEDULE,
+        },
+        "detections_report": {
+            "channels": LAST_NIGHT_STATS_CHANNELS,
+            "schedule": LAST_NIGHT_STATS_SCHEDULE,
         },
     }
 }

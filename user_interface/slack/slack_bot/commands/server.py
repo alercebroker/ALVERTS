@@ -21,7 +21,11 @@ main = Blueprint("slack", __name__, url_prefix="/slack")
 def create_app():
     container = SlackContainer()
     container.config.from_dict(
-        {"slack": settings.SLACK_CREDENTIALS, "streams": settings.KAFKA_STREAMS}
+        {
+            "slack": settings.SLACK_CREDENTIALS,
+            "streams": settings.KAFKA_STREAMS,
+            "database": settings.DATABASE_CONFIG,
+        }
     )
     container.wire(modules=[sys.modules[__name__]])
     app = Flask(__name__)
@@ -53,7 +57,6 @@ def command_last_night_objects():
             channel=f"#{channel}", text=text
         )
     except SlackApiError as e:
-        print(e)
         logging.error("Request to Slack API Failed: {}.".format(e.response))
         return make_response("", e.response)
     return make_response("", response.status_code)
@@ -63,15 +66,30 @@ def command_last_night_objects():
 @inject
 def command_stream_lag_check(
     controller: ReportController = Provide[SlackContainer.slack_controller],
-    exporter: SlackExporter = Provide[SlackContainer.slack_exporter],
-    streams: dict = Provide[SlackContainer.config.streams],
+    streams: list = Provide[SlackContainer.config.streams.lag_report],
 ):
     local_request: Request = request
-    exporter.set_view(make_response())
-    exporter.set_slack_parameters(local_request.form)
-    if exporter.view.status_code == 200:
+    controller.presenter.set_view(make_response())
+    controller.presenter.set_slack_parameters(local_request.form)
+    if controller.presenter.view.status_code == 200:
         controller.get_report(streams, "lag_report")
-    return exporter.view
+    return controller.presenter.view
+
+
+@main.route("/stream_detections_check", methods=["POST"])
+@inject
+def command_stream_detections_check(
+    controller: ReportController = Provide[SlackContainer.slack_controller],
+    streams: list = Provide[SlackContainer.config.streams.detections_report],
+    database: list = Provide[SlackContainer.config.database],
+):
+    local_request: Request = request
+    controller.presenter.set_view(make_response())
+    controller.presenter.set_slack_parameters(local_request.form)
+    params = {"streams": streams, "database": database}
+    if controller.presenter.view.status_code == 200:
+        controller.get_report(params, "detections_report")
+    return controller.presenter.view
 
 
 if __name__ == "__main__":
