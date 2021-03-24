@@ -59,11 +59,13 @@ KAFKA_STREAMS_DETECTIONS_REPORT = [
         "topic": f"ztf_{date}_programid1_aux",
         "bootstrap_servers": "kafka1.alerce.online:9092,kafka2.alerce.online:9092,kafka3.alerce.online:9092",
         "group_id": f"report_{date}",
+        "batch_size": 500,
     },
     {
         "topic": f"ztf_{date}_programid1_aux",
         "bootstrap_servers": "10.0.2.14:9092,10.0.2.181:9092,10.0.2.62:9092",
         "group_id": f"report_{date}",
+        "batch_size": 500,
     },
 ]
 
