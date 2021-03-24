@@ -7,8 +7,6 @@ from user_interface.slack.slack_bot import settings
 import sys
 
 container = SlackContainer()
-container.db_service.override(providers.Factory(MockPsqlService, state="success"))
-container.kafka_service.override(providers.Factory(MockKafkaService, state="success"))
 container.config.from_dict(
     {
         "slack": settings.SLACK_CREDENTIALS,
