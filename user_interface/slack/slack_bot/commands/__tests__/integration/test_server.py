@@ -66,6 +66,7 @@ class TestDetectionsCheck:
                     "bootstrap_servers": "localhost:9094",
                     "topic": "test",
                     "group_id": "test_detections_report_success",
+                    "batch_size": 2,
                 },
             ],
         }
