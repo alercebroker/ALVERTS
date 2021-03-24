@@ -10,7 +10,6 @@ container = SlackContainer()
 container.config.from_dict(
     {
         "slack": settings.SLACK_CREDENTIALS,
-        "streams": settings.KAFKA_STREAMS,
         "database": settings.DATABASE_CONFIG,
     }
 )

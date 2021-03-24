@@ -1,6 +1,9 @@
 from user_interface.slack.slack_bot.settings import OLD_DATABASE_CONFIG
-from user_interface.slack.slack_bot.utils import queries
-from user_interface.slack.slack_bot.utils.db import session_options
+from user_interface.slack.slack_bot.utils import (
+    queries,
+    db as db_utils,
+    streams as stream_utils,
+)
 from dependency_injector.wiring import inject, Provide
 from db_plugins.db.sql import SQLConnection
 from slack.errors import SlackApiError
@@ -23,7 +26,7 @@ class ScheduledBot:
         self.db = db_conn or SQLConnection()
         self.db.connect(
             config=OLD_DATABASE_CONFIG["SQL"],
-            session_options=session_options,
+            session_options=db_utils.session_options,
             use_scoped=True,
         )
         self.config = config
@@ -56,14 +59,14 @@ class ScheduledBot:
         self,
         channel: str,
         controller: ReportController = Provide[SlackContainer.slack_controller],
-        streams: list = Provide[SlackContainer.config.streams.lag_report],
+        streams: dict = Provide[SlackContainer.stream_params_creator],
     ):
         request = {"channel_name": channel, "user_name": "bot"}
         response = {"data": "", "status_code": 200}
         controller.presenter.set_view(response)
         controller.presenter.set_slack_parameters(request)
         if controller.presenter.view["status_code"] == 200:
-            controller.get_report(streams, "lag_report")
+            controller.get_report(streams["stream_params_lag_report"], "lag_report")
         self.logger.info(
             f"Report: stream_lag_report, status: { response[ 'status_code' ] }, data: {response['data']}"
         )
@@ -73,8 +76,8 @@ class ScheduledBot:
         self,
         channel: str,
         controller: ReportController = Provide[SlackContainer.slack_controller],
-        streams: list = Provide[SlackContainer.config.streams.detections_report],
         database: list = Provide[SlackContainer.config.database],
+        streams: dict = Provide[SlackContainer.stream_params_creator],
     ):
         self.logger.info("Producing detections report")
         request = {"channel_name": channel, "user_name": "bot"}
@@ -82,7 +85,10 @@ class ScheduledBot:
         controller.presenter.set_view(response)
         controller.presenter.set_slack_parameters(request)
         if controller.presenter.view["status_code"] == 200:
-            params = {"streams": streams, "database": database}
+            params = {
+                "streams": streams["stream_params_detections_report"],
+                "database": database,
+            }
             controller.get_report(params, "detections_report")
         self.logger.info(
             f"Report: detections_report, status: { response[ 'status_code' ] }, data: {response['data']}"

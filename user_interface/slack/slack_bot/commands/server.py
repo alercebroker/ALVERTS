@@ -11,9 +11,11 @@ from user_interface.slack.slack_bot import settings
 from user_interface.slack.slack_bot.container import SlackContainer
 from user_interface.slack.adapters.slack_presenter import SlackExporter
 from user_interface.adapters.controller import ReportController
+from user_interface.slack.slack_bot.utils import streams as stream_utils
 
 from dependency_injector.wiring import inject, Provide
 import sys
+from typing import Callable
 
 main = Blueprint("slack", __name__, url_prefix="/slack")
 
@@ -23,7 +25,6 @@ def create_app():
     container.config.from_dict(
         {
             "slack": settings.SLACK_CREDENTIALS,
-            "streams": settings.KAFKA_STREAMS,
             "database": settings.DATABASE_CONFIG,
         }
     )
@@ -66,13 +67,13 @@ def command_last_night_objects():
 @inject
 def command_stream_lag_check(
     controller: ReportController = Provide[SlackContainer.slack_controller],
-    streams: list = Provide[SlackContainer.config.streams.lag_report],
+    streams: dict = Provide[SlackContainer.stream_params_creator],
 ):
     local_request: Request = request
     controller.presenter.set_view(make_response())
     controller.presenter.set_slack_parameters(local_request.form)
     if controller.presenter.view.status_code == 200:
-        controller.get_report(streams, "lag_report")
+        controller.get_report(streams["stream_params_lag_report"], "lag_report")
     return controller.presenter.view
 
 
@@ -80,13 +81,16 @@ def command_stream_lag_check(
 @inject
 def command_stream_detections_check(
     controller: ReportController = Provide[SlackContainer.slack_controller],
-    streams: list = Provide[SlackContainer.config.streams.detections_report],
     database: list = Provide[SlackContainer.config.database],
+    streams: Callable = Provide[SlackContainer.stream_params_creator],
 ):
     local_request: Request = request
     controller.presenter.set_view(make_response())
     controller.presenter.set_slack_parameters(local_request.form)
-    params = {"streams": streams, "database": database}
+    params = {
+        "streams": streams["stream_params_detections_report"],
+        "database": database,
+    }
     if controller.presenter.view.status_code == 200:
         controller.get_report(params, "detections_report")
     return controller.presenter.view

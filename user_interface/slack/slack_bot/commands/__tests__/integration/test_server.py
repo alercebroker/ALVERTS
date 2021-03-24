@@ -29,18 +29,20 @@ def client():
 class TestStreamLagCheck:
     def test_get_lag(self, kafka_service, consume, client, app):
         consume("test_get_lag_success", "test", 1, 1)
-        KAFKA_STREAMS = {
-            "lag_report": [
+
+        def kafka_streams():
+            return [
                 {
                     "bootstrap_servers": "localhost:9094",
                     "topic": "test",
                     "group_id": "test_get_lag_success",
                 },
-            ],
-        }
-        app.container.config.from_dict(
-            {"slack": {}, "streams": KAFKA_STREAMS, "database": {}}
+            ]
+
+        app.container.stream_params_creator.override(
+            providers.Dict(stream_params_lag_report=providers.Callable(kafka_streams))
         )
+        app.container.config.from_dict({"slack": {}, "database": {}})
         slack_client_mock = MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         app.container.slack_client.override(providers.Object(slack_client_mock))
@@ -48,7 +50,10 @@ class TestStreamLagCheck:
         test_client = client(app)
         response = test_client.post(
             "/slack/stream_lag_check",
-            data={"channel_name": "channel", "user_name": "user"},
+            data={
+                "channel_name": "channel",
+                "user_name": "user",
+            },
         )
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#channel",
@@ -60,16 +65,22 @@ class TestDetectionsCheck:
     def test_should_return_success(
         self, kafka_service, psql_service, init_first_db, client, app
     ):
-        KAFKA_STREAMS = {
-            "detections_report": [
+        def kafka_streams():
+            return [
                 {
                     "bootstrap_servers": "localhost:9094",
                     "topic": "test",
                     "group_id": "test_detections_report_success",
                     "batch_size": 2,
                 },
-            ],
-        }
+            ]
+
+        app.container.stream_params_creator.override(
+            providers.Dict(
+                stream_params_detections_report=providers.Callable(kafka_streams)
+            )
+        )
+
         DATABASE_CONFIG = [
             {
                 "table_identifiers": ["objectId", "candid"],
@@ -80,7 +91,6 @@ class TestDetectionsCheck:
         app.container.config.from_dict(
             {
                 "slack": {},
-                "streams": KAFKA_STREAMS,
                 "database": DATABASE_CONFIG,
             }
         )
@@ -92,7 +102,10 @@ class TestDetectionsCheck:
         test_client = client(app)
         response = test_client.post(
             "/slack/stream_detections_check",
-            data={"channel_name": "channel", "user_name": "user"},
+            data={
+                "channel_name": "channel",
+                "user_name": "user",
+            },
         )
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#channel",
@@ -104,15 +117,20 @@ Topic test from localhost:9094 with group id test processed 1 out of 1 alerts wi
     def test_should_return_check_fail(
         self, kafka_service, psql_service, init_first_db, client, app
     ):
-        KAFKA_STREAMS = {
-            "detections_report": [
+        def kafka_streams():
+            return [
                 {
                     "bootstrap_servers": "localhost:9094",
                     "topic": "test",
                     "group_id": "test_detections_report_fail",
                 },
-            ],
-        }
+            ]
+
+        app.container.stream_params_creator.override(
+            providers.Dict(
+                stream_params_detections_report=providers.Callable(kafka_streams)
+            )
+        )
         DATABASE_CONFIG = [
             {
                 "table_identifiers": ["objectId", "candid"],
@@ -123,7 +141,6 @@ Topic test from localhost:9094 with group id test processed 1 out of 1 alerts wi
         app.container.config.from_dict(
             {
                 "slack": {},
-                "streams": KAFKA_STREAMS,
                 "database": DATABASE_CONFIG,
             }
         )
@@ -135,7 +152,10 @@ Topic test from localhost:9094 with group id test processed 1 out of 1 alerts wi
         test_client = client(app)
         response = test_client.post(
             "/slack/stream_detections_check",
-            data={"channel_name": "channel", "user_name": "user"},
+            data={
+                "channel_name": "channel",
+                "user_name": "user",
+            },
         )
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#channel",
@@ -154,8 +174,8 @@ Topic test from localhost:9094 with group id test processed 0 out of 1 alerts wi
         client,
         app,
     ):
-        KAFKA_STREAMS = {
-            "detections_report": [
+        def kafka_streams():
+            return [
                 {
                     "bootstrap_servers": "localhost:9094",
                     "topic": "test",
@@ -166,9 +186,13 @@ Topic test from localhost:9094 with group id test processed 0 out of 1 alerts wi
                     "topic": "test2",
                     "group_id": "test2_two_databases_success",
                 },
-            ],
-        }
+            ]
 
+        app.container.stream_params_creator.override(
+            providers.Dict(
+                stream_params_detections_report=providers.Callable(kafka_streams)
+            )
+        )
         DATABASE_CONFIG = [
             {
                 "table_identifiers": ["objectId", "candid"],
@@ -184,7 +208,6 @@ Topic test from localhost:9094 with group id test processed 0 out of 1 alerts wi
         app.container.config.from_dict(
             {
                 "slack": {},
-                "streams": KAFKA_STREAMS,
                 "database": DATABASE_CONFIG,
             }
         )
@@ -197,7 +220,10 @@ Topic test from localhost:9094 with group id test processed 0 out of 1 alerts wi
         test_client = client(app)
         response = test_client.post(
             "/slack/stream_detections_check",
-            data={"channel_name": "channel", "user_name": "user"},
+            data={
+                "channel_name": "channel",
+                "user_name": "user",
+            },
         )
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#channel",
@@ -217,8 +243,8 @@ Topic test2 from localhost:9094 with group id test2 processed 1 out of 1 alerts 
         client,
         app,
     ):
-        KAFKA_STREAMS = {
-            "detections_report": [
+        def kafka_streams():
+            return [
                 {
                     "bootstrap_servers": "localhost:9094",
                     "topic": "test",
@@ -229,9 +255,13 @@ Topic test2 from localhost:9094 with group id test2 processed 1 out of 1 alerts 
                     "topic": "test2",
                     "group_id": "test2_two_databases_fail",
                 },
-            ],
-        }
+            ]
 
+        app.container.stream_params_creator.override(
+            providers.Dict(
+                stream_params_detections_report=providers.Callable(kafka_streams)
+            )
+        )
         DATABASE_CONFIG = [
             {
                 "table_identifiers": ["objectId", "candid"],
@@ -247,7 +277,6 @@ Topic test2 from localhost:9094 with group id test2 processed 1 out of 1 alerts 
         app.container.config.from_dict(
             {
                 "slack": {},
-                "streams": KAFKA_STREAMS,
                 "database": DATABASE_CONFIG,
             }
         )
@@ -260,7 +289,10 @@ Topic test2 from localhost:9094 with group id test2 processed 1 out of 1 alerts 
         test_client = client(app)
         response = test_client.post(
             "/slack/stream_detections_check",
-            data={"channel_name": "channel", "user_name": "user"},
+            data={
+                "channel_name": "channel",
+                "user_name": "user",
+            },
         )
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#channel",
@@ -269,3 +301,54 @@ Topic test from localhost:9094 with group id test processed 1 out of 1 alerts wi
 Topic test2 from localhost:9094 with group id test2 processed 0 out of 1 alerts with 1 missing
 """,
         )
+
+    def test_should_fail_on_wrong_table(
+        self,
+        kafka_service,
+        psql_service,
+        init_first_db,
+        client,
+        app,
+    ):
+        def kafka_streams():
+            return [
+                {
+                    "bootstrap_servers": "localhost:9094",
+                    "topic": "test",
+                    "group_id": "test_fail_on_wrong_table",
+                },
+            ]
+
+        DATABASE_CONFIG = [
+            {
+                "table_identifiers": ["objectId", "candid"],
+                "db_url": "postgresql://postgres:postgres@localhost:5432/postgres",
+                "table_name": "not_found",
+            },
+        ]
+
+        app.container.stream_params_creator.override(
+            providers.Dict(
+                stream_params_detections_report=providers.Callable(kafka_streams)
+            )
+        )
+        app.container.config.from_dict(
+            {
+                "slack": {},
+                "database": DATABASE_CONFIG,
+            }
+        )
+        init_first_db(insert=True)
+        slack_client_mock = MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        app.container.slack_client.override(providers.Object(slack_client_mock))
+        app.container.slack_signature_verifier.override(providers.Factory(MagicMock))
+        test_client = client(app)
+        response = test_client.post(
+            "/slack/stream_detections_check",
+            data={
+                "channel_name": "channel",
+                "user_name": "user",
+            },
+        )
+        assert response.status_code == 500

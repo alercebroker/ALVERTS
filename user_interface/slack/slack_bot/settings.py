@@ -3,80 +3,14 @@ import datetime
 
 STAGE = os.getenv("BOT_STAGE", "develop")
 
-
 # SLACK API SECTION
 SLACK_CREDENTIALS = {
     "SLACK_BOT_TOKEN": os.getenv("SLACK_BOT_TOKEN", ""),
     "SLACK_SIGNATURE": os.getenv("SLACK_SIGNATURE"),
 }
-
 PROFILE = False
 
-
-# KAFKA TOPICS SECTION
-yesterday = datetime.datetime.today() - datetime.timedelta(1)
-date = yesterday.strftime("%Y%m%d")
-KAFKA_STREAMS_LAG_REPORT = [
-    {
-        "topic": f"ztf_{date}_programid1_aux",
-        "bootstrap_servers": "kafka1.alerce.online:9092,kafka2.alerce.online:9092,kafka3.alerce.online:9092",
-        "group_id": "ALeRCE_v4_20200330_v1",
-    },
-    {
-        "topic": f"ztf_{date}_programid1_aux",
-        "bootstrap_servers": "kafka1.alerce.online:9092,kafka2.alerce.online:9092,kafka3.alerce.online:9092",
-        "group_id": "ALERCE_stamp_classifier_v2_XXX",
-    },
-    {
-        "topic": "xmatch",
-        "bootstrap_servers": "10.0.2.14:9092,10.0.2.181:9092,10.0.2.62:9092",
-        "group_id": "correction_consumer",
-    },
-    {
-        "topic": "correction",
-        "bootstrap_servers": "10.0.2.14:9092,10.0.2.181:9092,10.0.2.62:9092",
-        "group_id": "feature_consumer",
-    },
-    {
-        "topic": "feature",
-        "bootstrap_servers": "10.0.2.14:9092,10.0.2.181:9092,10.0.2.62:9092",
-        "group_id": "lc_classifier_consumer",
-    },
-    {
-        "topic": f"ztf_{date}_programid1_aux",
-        "bootstrap_servers": "10.0.2.14:9092,10.0.2.181:9092,10.0.2.62:9092",
-        "group_id": "xmatch_consumer",
-    },
-    {
-        "topic": f"ztf_{date}_programid1_aux",
-        "bootstrap_servers": "10.0.2.14:9092,10.0.2.181:9092,10.0.2.62:9092",
-        "group_id": "early_consumer",
-    },
-]
-
-KAFKA_STREAMS_DETECTIONS_REPORT = [
-    {
-        "topic": f"ztf_{date}_programid1_aux",
-        "bootstrap_servers": "kafka1.alerce.online:9092,kafka2.alerce.online:9092,kafka3.alerce.online:9092",
-        "group_id": f"report_{date}",
-        "batch_size": 500,
-    },
-    {
-        "topic": f"ztf_{date}_programid1_aux",
-        "bootstrap_servers": "10.0.2.14:9092,10.0.2.181:9092,10.0.2.62:9092",
-        "group_id": f"report_{date}",
-        "batch_size": 500,
-    },
-]
-
-KAFKA_STREAMS = {
-    "lag_report": KAFKA_STREAMS_LAG_REPORT,
-    "detections_report": KAFKA_STREAMS_DETECTIONS_REPORT,
-}
-
 # DATABASE SECTION
-
-
 HOST_PROD = os.getenv("DB_HOST_PROD", "localhost")
 DATABASE_PROD = os.getenv("DB_DATABASE_PROD", "local")
 USER_PROD = os.getenv("DB_USER_PROD", "user")
@@ -103,12 +37,12 @@ OLD_DATABASE_CONFIG = {
 
 DATABASE_CONFIG = [
     {
-        "table_identifiers": ["oid", "candid"],
+        "table_identifiers": ["objectId", "candid"],
         "db_url": f"postgresql://{USER_PROD}:{PASSWORD_PROD}@{HOST_PROD}:{PORT_PROD}/{DATABASE_PROD}",
         "table_name": "detections",
     },
     {
-        "table_identifiers": ["oid", "candid"],
+        "table_identifiers": ["objectId", "candid"],
         "db_url": f"postgresql://{USER_STAGE}:{PASSWORD_STAGE}@{HOST_STAGE}:{PORT_STAGE}/{DATABASE_STAGE}",
         "table_name": "detections",
     },

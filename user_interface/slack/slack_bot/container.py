@@ -12,6 +12,10 @@ from user_interface.slack.adapters.slack_request_model_creator import (
 )
 from shared.gateways.psql import PsqlService
 from modules.stream_verifier.use_cases.get_detections_report import GetDetectionsReport
+from user_interface.slack.slack_bot.utils.streams import (
+    get_kafka_streams_detections_report,
+    get_kafka_streams_lag_report,
+)
 
 
 class SlackContainer(containers.DeclarativeContainer):
@@ -52,4 +56,11 @@ class SlackContainer(containers.DeclarativeContainer):
             ),
         ),
         request_model_creator=providers.Factory(SlackRequestModelCreator),
+    )
+
+    stream_params_creator = providers.Dict(
+        stream_params_lag_report=providers.Callable(get_kafka_streams_lag_report),
+        stream_params_detections_report=providers.Callable(
+            get_kafka_streams_detections_report
+        ),
     )
