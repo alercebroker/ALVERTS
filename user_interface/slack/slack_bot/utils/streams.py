@@ -46,18 +46,19 @@ def get_kafka_streams_lag_report():
 
 def get_kafka_streams_detections_report():
     yesterday = datetime.datetime.today() - datetime.timedelta(1)
-    date = yesterday.strftime("%Y%m%d%H%M%S")
+    date_group_id = yesterday.strftime("%Y%m%d%H%M%S")
+    date_topic=yesterday.strftime("%Y%m%d")
     KAFKA_STREAMS_DETECTIONS_REPORT = [
         {
-            "topic": f"ztf_{date}_programid1_aux",
+            "topic": f"ztf_{date_topic}_programid1_aux",
             "bootstrap_servers": "kafka1.alerce.online:9092,kafka2.alerce.online:9092,kafka3.alerce.online:9092",
-            "group_id": f"report_{date}",
+            "group_id": f"report_{date_group_id}",
             "batch_size": 500,
         },
         {
-            "topic": f"ztf_{date}_programid1_aux",
+            "topic": f"ztf_{date_topic}_programid1_aux",
             "bootstrap_servers": "10.0.2.14:9092,10.0.2.181:9092,10.0.2.62:9092",
-            "group_id": f"report_{date}",
+            "group_id": f"report_{date_group_id}",
             "batch_size": 500,
         },
     ]
