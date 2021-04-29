@@ -6,7 +6,7 @@ from user_interface.slack.slack_bot.container import SlackContainer
 import sys
 
 container = SlackContainer()
-container.config.from_yaml("settings.yml")
+container.config.from_yaml("user_interface/slack/slack_bot/settings.yml")
 container.wire(modules=[sys.modules[bot.__name__]])
 scheduled_bot = bot.ScheduledBot()
 
