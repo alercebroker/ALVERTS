@@ -26,7 +26,7 @@ class ScheduledBot:
         self.logger.setLevel(log_level)
 
     @inject
-    def stream_lag_report(
+    def lag_report(
         self,
         controller: ReportController = Provide[SlackContainer.slack_controller],
         params: dict = Provide[SlackContainer.config.slack_bot],
@@ -81,19 +81,17 @@ class ScheduledBot:
         )
         return response
 
-    def schedule(self) -> List:
+    @inject
+    def schedule(self, params: dict = Provide[SlackContainer.config.slack_bot]) -> List:
         self.logger.info("Scheduling messages")
-        channels_scheduled = []
-        if "every_day" in self.config.keys():
-            for k, v in self.config["every_day"].items():
-                channels_scheduled = list(
-                    itertools.product(v["schedule"], v["channels"])
-                )
-                for cs in channels_scheduled:
-                    self.logger.info(f"{k} every day at {cs[0]} to {cs[1]}")
-                    method = getattr(self, k)
-                    schedule.every().day.at(cs[0]).do(lambda: method(cs[1]))
-        return channels_scheduled
+        for rep in params["schedule"]:
+            if rep["period"] == "every_day":
+                method = getattr(self, rep["report"])
+                for t in rep["times"]:
+                    self.logger.info(
+                        f"{rep['report']} every day at {t} to channels: {rep['channels']}"
+                    )
+                    schedule.every().day.at(t).do(method)
 
     def run(self) -> None:
         self.logger.info("Running schedule")
