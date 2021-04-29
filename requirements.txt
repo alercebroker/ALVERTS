@@ -1,4 +1,4 @@
-dependency-injector
+dependency-injector[yaml]
 confluent-kafka
 fastavro
 git+https://github.com/alercebroker/db-plugins.git
