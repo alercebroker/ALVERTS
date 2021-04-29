@@ -1,0 +1,26 @@
+---
+slack_bot:
+  stage: testing
+  log_level: develop
+  slack_credentials:
+    token: test_token
+    signature: test_signature
+  reports:
+    - name: lag_report
+      streams:
+        - bootstrap_servers: localhost:9092
+          group_id: xmatch
+          topic_format: ztf_%s_test
+          date_format: "%Y%m%d"
+        - bootstrap_servers: localhost:9092
+          group_id: correction
+          topic_format: ztf_%s_test_2
+          date_format: "%Y%m%d"
+  schedule:
+    - period: every_day
+      report: lag_report
+      channels:
+        - test-bots
+      times:
+        - '12:00'
+        - '16:00'

@@ -33,21 +33,21 @@ class MockKafkaService:
 
     def get_lag(self, request_model, parser):
         if self.state == "success":
-            lag_report = LagReport(
+            response = KafkaResponse(
                 bootstrap_servers=request_model.bootstrap_servers,
                 topic=request_model.topic,
                 group_id=request_model.group_id,
-                lags=[0, 0, 0],
+                data={"lags": [0, 0, 0]},
             )
-            return Result.Ok(lag_report)
+            return parser(response)
         if self.state == "check_fail":
-            lag_report = LagReport(
+            response = KafkaResponse(
                 bootstrap_servers=request_model.bootstrap_servers,
                 topic=request_model.topic,
                 group_id=request_model.group_id,
-                lags=[0, 6, 4],
+                data={"lags": [0, 6, 4]},
             )
-            return Result.Ok(lag_report)
+            return parser(response)
         if self.state == "client_error":
             return Result.Fail(ClientException("fail"))
         if self.state == "external_error":

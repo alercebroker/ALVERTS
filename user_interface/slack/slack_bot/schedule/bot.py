@@ -21,55 +21,42 @@ import time
 
 
 class ScheduledBot:
-    def __init__(self, config: dict, log_level="INFO", db_conn=None):
-        self._init_log(log_level)
-        self.db = db_conn or SQLConnection()
-        self.db.connect(
-            config=OLD_DATABASE_CONFIG["SQL"],
-            session_options=db_utils.session_options,
-            use_scoped=True,
-        )
-        self.config = config
-
-    def _init_log(self, level) -> None:
+    def __init__(
+        self,
+        log_level="INFO",
+    ):
         logging.basicConfig(
             format="%(asctime)s %(levelname)s %(name)s.%(funcName)s: %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(level)
-
-    def _send_message(self, channel: str, text: str) -> None:
-        try:
-            self.alert_system.container.slack_client.chat_postMessage(
-                channel=channel, text=text
-            )
-        except SlackApiError as e:
-            self.logger.error(
-                f"Request to Slack API Failed: {e.response.status_code} - {e.response}"
-            )
-
-    def last_night_stats(self, channel: str) -> None:
-        last_night_report = queries.get_last_night_objects(self.db)
-        self._send_message(channel, last_night_report)
-        self.logger.info("Report sent: last_night_stats")
+        self.logger.setLevel(log_level)
 
     @inject
     def stream_lag_report(
         self,
-        channel: str,
         controller: ReportController = Provide[SlackContainer.slack_controller],
-        streams: dict = Provide[SlackContainer.stream_params_creator],
+        params: dict = Provide[SlackContainer.config.slack_bot],
     ):
-        request = {"channel_name": channel, "user_name": "bot"}
+        lag_report_params = next(
+            filter(lambda report: report["name"] == "lag_report", params["reports"])
+        )
+        schedule_params = next(
+            filter(
+                lambda schedule: schedule["report"] == "lag_report", params["schedule"]
+            )
+        )
+
+        request = {"channel_names": schedule_params["channels"], "user_name": "bot"}
         response = {"data": "", "status_code": 200}
         controller.presenter.set_view(response)
         controller.presenter.set_slack_parameters(request)
         if controller.presenter.view["status_code"] == 200:
-            controller.get_report(streams["stream_params_lag_report"], "lag_report")
+            controller.get_report(lag_report_params, "lag_report")
         self.logger.info(
             f"Report: stream_lag_report, status: { response[ 'status_code' ] }, data: {response['data']}"
         )
+        return response
 
     @inject
     def detections_report(

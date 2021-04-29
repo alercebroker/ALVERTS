@@ -95,10 +95,10 @@ class StreamVerifier(IStreamVerifier):
             return Result.Fail(ValueError(err))
 
         str_values = ",\n".join([f"('{val[0]}', {val[1]})" for val in values])
-        QUERY_VALUES = self._create_base_query(table) % str_values
+        QUERY_VALUES = self._create_base_query(table, str_values)
         return self.db_service.execute(QUERY_VALUES, parser)
 
-    def _create_base_query(self, table: str) -> str:
+    def _create_base_query(self, table: str, values: str) -> str:
         """Create base query statement for alert ingested on DB.
 
         Parameters
@@ -120,4 +120,4 @@ class StreamVerifier(IStreamVerifier):
                     LEFT JOIN {table} AS d ON batch_candids.candid = d.candid
                     WHERE d.candid IS NULL
                 """
-        return QUERY
+        return QUERY % values

@@ -1,0 +1,48 @@
+---
+slack_bot:
+  stage: testing
+  log_level: develop
+  slack_credentials:
+    token: test_token
+    signature: test_signature
+  reports:
+    - name: detections_report
+      database:
+        # Add as many databases as you want to check
+        # Keep in mind: One database entry per topic
+        # For kafka topics use the streams field below
+        - host: localhost
+          database: postgres
+          user: postgres
+          password: postgres
+          port: 5432
+      streams:
+        # Add as many kafka servers and topics you want to check
+        # Keep in mind: One stream entry per topic
+        - bootstrap_servers: localhost:9092
+          group_id_format: "bot_%s"
+          topic_format: "ztf_%s_test"
+          date_format: "%Y%m%d"
+      batch_size: 1
+    - name: lag_report
+      streams:
+        - bootstrap_servers: localhost:9092
+          group_id: xmatch
+          topic_format: ztf_%s_test
+          date_format: "%Y%m%d"
+  schedule:
+    - period: every_day
+      report: lag_report
+      channels:
+        - test-bots
+      times:
+        - '12:00'
+        - '16:00'
+    - period: every_day
+      report: detections_report
+      channels:
+        - test-bots
+      times:
+        - '16:00'
+        
+        

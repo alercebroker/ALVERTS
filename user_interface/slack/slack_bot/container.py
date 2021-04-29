@@ -57,10 +57,3 @@ class SlackContainer(containers.DeclarativeContainer):
         ),
         request_model_creator=providers.Factory(SlackRequestModelCreator),
     )
-
-    stream_params_creator = providers.Dict(
-        stream_params_lag_report=providers.Callable(get_kafka_streams_lag_report),
-        stream_params_detections_report=providers.Callable(
-            get_kafka_streams_detections_report
-        ),
-    )

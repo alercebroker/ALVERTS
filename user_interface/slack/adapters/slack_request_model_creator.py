@@ -6,13 +6,14 @@ from modules.stream_verifier.infrastructure.request_models import (
     DetectionsReportRequestModel,
 )
 from shared.gateways.request_models import KafkaRequest, TableRequest
+import datetime
 
 StreamDict = NewType("StreamDict", Dict[str, str])
 DBDict = NewType("DBDict", Dict[str, str])
 DetectionsRequest = NewType(
     "DetectionsRequest", Dict[str, List[Union[StreamDict, DBDict]]]
 )
-LagRequest = NewType("LagRequest", List[StreamDict])
+LagRequest = NewType("LagRequest", Dict[str, Union[str, List[StreamDict]]])
 
 
 class SlackRequestModelCreator(RequestModelCreator):
@@ -26,10 +27,10 @@ class SlackRequestModelCreator(RequestModelCreator):
 
     def _parse_lag_request_model(self, request: LagRequest):
         request_model = LagReportRequestModel()
-        for req in request:
-            kafka_request = KafkaRequest(
-                req["bootstrap_servers"], req["group_id"], req["topic"]
-            )
+        for req in request["streams"]:
+            topic = self._parse_topic(req)
+            group_id = self._parse_group_id(req)
+            kafka_request = KafkaRequest(req["bootstrap_servers"], group_id, topic)
             request_model.streams.append(kafka_request)
 
         return request_model
@@ -40,8 +41,10 @@ class SlackRequestModelCreator(RequestModelCreator):
             batch_size = 1
             if "batch_size" in req:
                 batch_size = req["batch_size"]
+            topic = self._parse_topic(req)
+            group_id = self._parse_group_id(req)
             kafka_request = KafkaRequest(
-                req["bootstrap_servers"], req["group_id"], req["topic"], batch_size
+                req["bootstrap_servers"], group_id, topic, batch_size
             )
             request_model.streams.append(kafka_request)
         for req in request["database"]:
@@ -51,3 +54,23 @@ class SlackRequestModelCreator(RequestModelCreator):
             request_model.tables.append(table_request)
 
         return request_model
+
+    def _parse_topic(self, req: Union[LagRequest, DetectionsRequest]):
+        if "topic" in req:
+            return req["topic"]
+        elif "topic_format" in req:
+            date = datetime.datetime.today()
+            date = date.strftime(req["date_format"])
+            return req["topic_format"] % date
+        else:
+            raise Exception("Can't create request model")
+
+    def _parse_group_id(self, req: Union[LagRequest, DetectionsRequest]):
+        if "group_id" in req:
+            return req["group_id"]
+        elif "group_id_format" in req:
+            yesterday = datetime.datetime.today()
+            date_group_id = yesterday.strftime("%Y%m%d%H%M%S")
+            return req["group_id_format"] % date_group_id
+        else:
+            raise Exception("Can't create request model")

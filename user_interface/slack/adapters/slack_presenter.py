@@ -29,8 +29,8 @@ class SlackExporter(ReportPresenter):
     ):
         self.view = view
 
-    def set_slack_parameters(self, slack_parameters: SlackParameters):
-        if slack_parameters.get("channel_name") is None:
+    def set_slack_parameters(self, slack_parameters: List[SlackParameters]):
+        if slack_parameters.get("channel_names") is None:
             self.handle_request_error(
                 ClientException("Parameters must include channel_name")
             )
@@ -138,16 +138,17 @@ class SlackExporter(ReportPresenter):
 
     def post_to_slack(self, text: str):
         try:
-            channel = self.slack_parameters.get("channel_name")
+            channels = self.slack_parameters.get("channel_names")
         except Exception as e:
             self.handle_client_error(
                 ClientException(f"slack parameters not provided: {e}")
             )
             return
         try:
-            post_response = self.client.chat_postMessage(
-                channel=f"#{channel}", text=text
-            )
+            for channel in channels:
+                post_response = self.client.chat_postMessage(
+                    channel=f"#{channel}", text=text
+                )
         except Exception as e:
             self.handle_external_error(ExternalException(f"Error sending message: {e}"))
             return

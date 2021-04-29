@@ -9,14 +9,14 @@ from db_plugins.db.sql import SQLConnection
 from db_plugins.db.sql.models import Detection, Object
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
-EXAMPLES_PATH = os.path.abspath(os.path.join(FILE_PATH, "./examples/avro_test"))
+EXAMPLES_PATH = os.path.abspath(os.path.join(FILE_PATH, "./examples"))
 
 
 @pytest.fixture(scope="session")
 def docker_compose_file(pytestconfig):
     return os.path.join(
         str(pytestconfig.rootdir),
-        "user_interface/slack/slack_bot/commands/__tests__/integration",
+        "user_interface/slack/slack_bot/schedule/__tests__/integration",
         "docker-compose.yml",
     )
 
