@@ -1,15 +1,8 @@
 from user_interface.slack.slack_bot.settings import OLD_DATABASE_CONFIG
-from user_interface.slack.slack_bot.utils import (
-    queries,
-    db as db_utils,
-    streams as stream_utils,
-)
 from dependency_injector.wiring import inject, Provide
-from db_plugins.db.sql import SQLConnection
 from slack.errors import SlackApiError
 from slack.web.client import WebClient
 from typing import List
-from flask import make_response
 from user_interface.slack.slack_bot.container import SlackContainer
 from user_interface.slack.adapters.slack_presenter import SlackExporter
 from user_interface.adapters.controller import ReportController
@@ -63,23 +56,30 @@ class ScheduledBot:
         self,
         channel: str,
         controller: ReportController = Provide[SlackContainer.slack_controller],
-        database: list = Provide[SlackContainer.config.database],
-        streams: dict = Provide[SlackContainer.stream_params_creator],
+        params: dict = Provide[SlackContainer.config.slack_bot],
     ):
         self.logger.info("Producing detections report")
-        request = {"channel_name": channel, "user_name": "bot"}
+        detections_report_params = next(
+            filter(
+                lambda report: report["name"] == "detections_report", params["reports"]
+            )
+        )
+        schedule_params = next(
+            filter(
+                lambda schedule: schedule["report"] == "detections_report",
+                params["schedule"],
+            )
+        )
+        request = {"channel_name": schedule_params["channels"], "user_name": "bot"}
         response = {"data": "", "status_code": 200}
         controller.presenter.set_view(response)
         controller.presenter.set_slack_parameters(request)
         if controller.presenter.view["status_code"] == 200:
-            params = {
-                "streams": streams["stream_params_detections_report"],
-                "database": database,
-            }
-            controller.get_report(params, "detections_report")
+            controller.get_report(detections_report_params, "detections_report")
         self.logger.info(
             f"Report: detections_report, status: { response[ 'status_code' ] }, data: {response['data']}"
         )
+        return response
 
     def schedule(self) -> List:
         self.logger.info("Scheduling messages")
