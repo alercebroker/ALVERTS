@@ -24,9 +24,11 @@ class SlackContainer(containers.DeclarativeContainer):
     )
     db_service = providers.Singleton(PsqlService)
 
-    slack_client = providers.Singleton(WebClient, token=config.slack.SLACK_BOT_TOKEN)
+    slack_client = providers.Singleton(
+        WebClient, token=config.slack_bot.slack_credentials.token
+    )
     slack_signature_verifier = providers.Singleton(
-        SignatureVerifier, signing_secret=config.slack.SLACK_SIGNATURE
+        SignatureVerifier, signing_secret=config.slack_bot.slack_credentials.signature
     )
 
     # Main service
