@@ -57,12 +57,13 @@ class StreamVerifier(IStreamVerifier):
                         )
 
                     self.db_service.connect(table.db_url)
-
                     values = self._process_kafka_messages(
-                        kafka_response, table.identifiers
+                        kafka_response, stream.identifiers
                     )
                     reports.append(
-                        self._check_difference(values, table.table_name, parse_function)
+                        self._check_difference(
+                            values, table.table_name, table.id_field, parse_function
+                        )
                     )
 
                 self.kafka_service.consume_all(stream, process_function)
@@ -88,17 +89,19 @@ class StreamVerifier(IStreamVerifier):
 
         return values
 
-    def _check_difference(self, values: list, table: str, parser: Callable) -> list:
+    def _check_difference(
+        self, values: list, table: str, id_field: str, parser: Callable
+    ) -> list:
         if len(values) == 0:
             err = "No values passed, the topic is empty or something went wrong consuming."
             self.logger.error(err)
             return Result.Fail(ValueError(err))
 
         str_values = ",\n".join([f"('{val[0]}', {val[1]})" for val in values])
-        QUERY_VALUES = self._create_base_query(table, str_values)
+        QUERY_VALUES = self._create_base_query(table, id_field, str_values)
         return self.db_service.execute(QUERY_VALUES, parser)
 
-    def _create_base_query(self, table: str, values: str) -> str:
+    def _create_base_query(self, table: str, id_field: str, values: str) -> str:
         """Create base query statement for alert ingested on DB.
 
         Parameters
@@ -117,7 +120,7 @@ class StreamVerifier(IStreamVerifier):
                         VALUES %s
                     )
                     SELECT batch_candids.oid, batch_candids.candid FROM batch_candids
-                    LEFT JOIN {table} AS d ON batch_candids.candid = d.candid
-                    WHERE d.candid IS NULL
+                    LEFT JOIN {table} AS d ON batch_candids.candid = d.{id_field}
+                    WHERE d.{id_field} IS NULL
                 """
         return QUERY % values

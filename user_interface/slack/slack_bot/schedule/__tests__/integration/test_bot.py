@@ -54,7 +54,7 @@ class TestStreamLagCheck:
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
         container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
-        response = scheduled_bot.stream_lag_report()
+        response = scheduled_bot.lag_report()
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#test-bots",
             text="""Stream Lag Report Success\nNo group id has lag""",
@@ -91,7 +91,7 @@ class TestStreamLagCheck:
             "Failed to post message"
         )
         container.slack_client.override(providers.Object(slack_client_mock))
-        response = scheduled_bot.stream_lag_report()
+        response = scheduled_bot.lag_report()
         assert response["status_code"] == 500
         assert (
             response["data"]
@@ -126,7 +126,7 @@ class TestStreamLagCheck:
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        response = scheduled_bot.stream_lag_report()
+        response = scheduled_bot.lag_report()
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#test-bots",
             text="""Stream Lag Report Fail
@@ -167,7 +167,7 @@ Topic: test, Group Id: test_get_lag_check_fail, Bootstrap Servers: localhost:909
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        response = bot.stream_lag_report()
+        response = bot.lag_report()
         assert len(slack_client_mock.chat_postMessage.mock_calls) == 2
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#test-bots",
@@ -177,3 +177,302 @@ Topic: test2, Group Id: test_get_lag_multiple, Bootstrap Servers: localhost:9094
 """,
         )
         assert response["status_code"] == 200
+
+
+class TestDetectionsReport:
+    def test_should_return_success_report_and_post_to_slack(
+        self, kafka_service, psql_service, init_first_db, bot_fixture
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+
+        local_settings = {
+            "slack_bot": {
+                "reports": [
+                    {
+                        "name": "detections_report",
+                        "streams": [
+                            {
+                                "bootstrap_servers": "localhost:9094",
+                                "topic": "test",
+                                "group_id": "test_detections_report_success",
+                                "batch_size": 2,
+                                "identifiers": ["objectId", "candid"],
+                            }
+                        ],
+                        "database": [
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5432",
+                                "detections_table_name": "detection",
+                                "detections_id_field": "candid",
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+        container.config.from_dict(local_settings)
+        init_first_db(insert=True)
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
+        response = scheduled_bot.detections_report()
+        slack_client_mock.chat_postMessage.assert_called_with(
+            channel="#test-bots",
+            text="""Detections Report Success
+Topic test from localhost:9094 with group id test_detections_report_success processed 1 out of 1 alerts with 0 missing
+""",
+        )
+        assert response["status_code"] == 200
+
+    def test_should_return_check_fail_report_and_post_to_slack(
+        self, kafka_service, psql_service, init_first_db, bot_fixture
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+
+        local_settings = {
+            "slack_bot": {
+                "reports": [
+                    {
+                        "name": "detections_report",
+                        "streams": [
+                            {
+                                "bootstrap_servers": "localhost:9094",
+                                "topic": "test",
+                                "group_id": "test_detections_report_fail",
+                                "batch_size": 2,
+                                "identifiers": ["objectId", "candid"],
+                            }
+                        ],
+                        "database": [
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5432",
+                                "detections_table_name": "detection",
+                                "detections_id_field": "candid",
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+        container.config.from_dict(local_settings)
+        init_first_db(insert=False)
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
+        response = scheduled_bot.detections_report()
+        slack_client_mock.chat_postMessage.assert_called_with(
+            channel="#test-bots",
+            text="""Detections Report Failed
+Topic test from localhost:9094 with group id test_detections_report_fail processed 0 out of 1 alerts with 1 missing
+""",
+        )
+        assert response["status_code"] == 200
+
+    def test_should_work_with_two_databases(
+        self,
+        kafka_service,
+        psql_service,
+        second_database,
+        init_first_db,
+        init_second_db,
+        bot_fixture,
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+
+        local_settings = {
+            "slack_bot": {
+                "reports": [
+                    {
+                        "name": "detections_report",
+                        "streams": [
+                            {
+                                "bootstrap_servers": "localhost:9094",
+                                "topic": "test",
+                                "group_id": "test_detections_two_database",
+                                "batch_size": 2,
+                                "identifiers": ["objectId", "candid"],
+                            },
+                            {
+                                "bootstrap_servers": "localhost:9094",
+                                "topic": "test2",
+                                "group_id": "test_detections_two_database_2",
+                                "batch_size": 2,
+                                "identifiers": ["objectId", "candid"],
+                            },
+                        ],
+                        "database": [
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5432",
+                                "detections_table_name": "detection",
+                                "detections_id_field": "candid",
+                            },
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5433",
+                                "detections_table_name": "detection",
+                                "detections_id_field": "candid",
+                            },
+                        ],
+                    }
+                ]
+            }
+        }
+        container.config.from_dict(local_settings)
+        init_first_db(insert=True)
+        init_second_db(insert=True)
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
+        response = scheduled_bot.detections_report()
+        slack_client_mock.chat_postMessage.assert_called_with(
+            channel="#test-bots",
+            text="""Detections Report Success
+Topic test from localhost:9094 with group id test_detections_two_database processed 1 out of 1 alerts with 0 missing
+Topic test2 from localhost:9094 with group id test_detections_two_database_2 processed 1 out of 1 alerts with 0 missing
+""",
+        )
+        assert response["status_code"] == 200
+
+    def test_should_work_with_two_databases_check_fail(
+        self,
+        kafka_service,
+        psql_service,
+        second_database,
+        init_first_db,
+        init_second_db,
+        bot_fixture,
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+
+        local_settings = {
+            "slack_bot": {
+                "reports": [
+                    {
+                        "name": "detections_report",
+                        "streams": [
+                            {
+                                "bootstrap_servers": "localhost:9094",
+                                "topic": "test",
+                                "group_id": "test_detections_two_database_check_fail",
+                                "batch_size": 2,
+                                "identifiers": ["objectId", "candid"],
+                            },
+                            {
+                                "bootstrap_servers": "localhost:9094",
+                                "topic": "test2",
+                                "group_id": "test_detections_two_database_2_check_fail",
+                                "batch_size": 2,
+                                "identifiers": ["objectId", "candid"],
+                            },
+                        ],
+                        "database": [
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5432",
+                                "detections_table_name": "detection",
+                                "detections_id_field": "candid",
+                            },
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5433",
+                                "detections_table_name": "detection",
+                                "detections_id_field": "candid",
+                            },
+                        ],
+                    }
+                ]
+            }
+        }
+        container.config.from_dict(local_settings)
+        init_first_db(insert=True)
+        init_second_db(insert=False)
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
+        response = scheduled_bot.detections_report()
+        slack_client_mock.chat_postMessage.assert_called_with(
+            channel="#test-bots",
+            text="""Detections Report Failed
+Topic test from localhost:9094 with group id test_detections_two_database_check_fail processed 1 out of 1 alerts with 0 missing
+Topic test2 from localhost:9094 with group id test_detections_two_database_2_check_fail processed 0 out of 1 alerts with 1 missing
+""",
+        )
+        assert response["status_code"] == 200
+
+    def test_should_work_with_two_databases_wrong_db(
+        self,
+        kafka_service,
+        psql_service,
+        init_first_db,
+        bot_fixture,
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+
+        local_settings = {
+            "slack_bot": {
+                "reports": [
+                    {
+                        "name": "detections_report",
+                        "streams": [
+                            {
+                                "bootstrap_servers": "localhost:9094",
+                                "topic": "test",
+                                "group_id": "test_detections_wrong_db",
+                                "batch_size": 2,
+                                "identifiers": ["objectId", "candid"],
+                            },
+                        ],
+                        "database": [
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5432",
+                                "detections_table_name": "not_found",
+                                "detections_id_field": "candid",
+                            },
+                        ],
+                    }
+                ]
+            }
+        }
+        container.config.from_dict(local_settings)
+        init_first_db(insert=True)
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
+        response = scheduled_bot.detections_report()
+        slack_client_mock.chat_postMessage.assert_not_called()
+        assert response["status_code"] == 500

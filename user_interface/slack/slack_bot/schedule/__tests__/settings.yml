@@ -16,6 +16,8 @@ slack_bot:
           user: postgres
           password: postgres
           port: 5432
+          detections_table_name: detection
+          detections_id_field: candid
       streams:
         # Add as many kafka servers and topics you want to check
         # Keep in mind: One stream entry per topic
@@ -23,6 +25,9 @@ slack_bot:
           group_id_format: "bot_%s"
           topic_format: "ztf_%s_test"
           date_format: "%Y%m%d"
+          identifiers:
+            - oid
+            - candid
       batch_size: 1
     - name: lag_report
       streams:

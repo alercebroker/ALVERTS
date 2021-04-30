@@ -20,6 +20,7 @@ class ReportController:
 
     def get_report(self, params: Any, report_type: str):
         callbacks = self._make_callbacks(report_type)
+        print(params)
         try:
             request_model = self.request_model_creator.to_request_model(
                 params, report_type

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
-from shared.gateways.request_models import KafkaRequest, TableRequest
-from typing import List
+from shared.gateways.request_models import KafkaRequest
+from typing import List, Dict
 
 
 @dataclass
@@ -9,9 +9,21 @@ class LagReportRequestModel:
 
 
 @dataclass
+class DetectionsTableRequest:
+    db_url: str
+    table_name: str
+    id_field: str
+
+
+@dataclass
+class DetectionsStreamRequest(KafkaRequest):
+    identifiers: List[str] = field(default_factory=list)
+
+
+@dataclass
 class DetectionsReportRequestModel:
-    streams: List[KafkaRequest] = field(default_factory=list)
-    tables: List[TableRequest] = field(default_factory=list)
+    streams: List[DetectionsStreamRequest] = field(default_factory=list)
+    tables: List[DetectionsTableRequest] = field(default_factory=list)
 
     def params(self):
         for i, stream in enumerate(self.streams):

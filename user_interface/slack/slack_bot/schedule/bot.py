@@ -1,4 +1,3 @@
-from user_interface.slack.slack_bot.settings import OLD_DATABASE_CONFIG
 from dependency_injector.wiring import inject, Provide
 from slack.errors import SlackApiError
 from slack.web.client import WebClient
@@ -54,7 +53,6 @@ class ScheduledBot:
     @inject
     def detections_report(
         self,
-        channel: str,
         controller: ReportController = Provide[SlackContainer.slack_controller],
         params: dict = Provide[SlackContainer.config.slack_bot],
     ):
@@ -70,7 +68,7 @@ class ScheduledBot:
                 params["schedule"],
             )
         )
-        request = {"channel_name": schedule_params["channels"], "user_name": "bot"}
+        request = {"channel_names": schedule_params["channels"], "user_name": "bot"}
         response = {"data": "", "status_code": 200}
         controller.presenter.set_view(response)
         controller.presenter.set_slack_parameters(request)
