@@ -50,8 +50,10 @@ class SlackExporter(ReportPresenter):
 
         if isinstance(self.view, dict):
             self.view["status_code"] = post_response.status_code
+            self.view["data"] = text
         else:
             self.view.status_code = post_response.status_code
+            self.view.data = text
 
     def export_detections_report(self, report: DetectionsReportResponseModel):
         try:
@@ -66,8 +68,10 @@ class SlackExporter(ReportPresenter):
 
         if isinstance(self.view, dict):
             self.view["status_code"] = post_response.status_code
+            self.view["data"] = text
         else:
             self.view.status_code = post_response.status_code
+            self.view.data = text
 
     def handle_client_error(self, error: ClientException):
         message = f"Client Error: {error}"

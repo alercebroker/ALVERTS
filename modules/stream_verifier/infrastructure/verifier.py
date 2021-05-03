@@ -35,7 +35,7 @@ class StreamVerifier(IStreamVerifier):
             )
         combined_reports = Result.combine(reports)
         if not combined_reports.success:
-            self.logger.error("Failed to get lag report")
+            self.logger.error("Failed to get lag report", exc_info=True)
             return combined_reports
         response_model = self._response_model_parser.to_lag_report_response_model(
             combined_reports.value
@@ -68,9 +68,9 @@ class StreamVerifier(IStreamVerifier):
 
                 self.kafka_service.consume_all(stream, process_function)
             except Exception as e:
-                err = f"Error with kafka message or database {e}"
-                self.logger.error(err)
-                return Result.Fail(ExternalException(err))
+                err = ExternalException(f"Error with kafka message or database {e}")
+                self.logger.error(err, exc_info=True)
+                return Result.Fail(err)
         combined_reports = Result.combine(reports)
         if not combined_reports.success:
             return combined_reports
@@ -93,9 +93,11 @@ class StreamVerifier(IStreamVerifier):
         self, values: list, table: str, id_field: str, parser: Callable
     ) -> list:
         if len(values) == 0:
-            err = "No values passed, the topic is empty or something went wrong consuming."
-            self.logger.error(err)
-            return Result.Fail(ValueError(err))
+            err = ValueError(
+                "No values passed, the topic is empty or something went wrong consuming."
+            )
+            self.logger.error(err, exc_info=True)
+            return Result.Fail(err)
 
         str_values = ",\n".join([f"('{val[0]}', {val[1]})" for val in values])
         QUERY_VALUES = self._create_base_query(table, id_field, str_values)
