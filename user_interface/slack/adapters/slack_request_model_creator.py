@@ -38,7 +38,7 @@ class SlackRequestModelCreator(RequestModelCreator):
         for req in request["streams"]:
             batch_size = 1
             if "batch_size" in req:
-                batch_size = req["batch_size"]
+                batch_size = int(req["batch_size"])
             topic = self._parse_topic(req)
             group_id = self._parse_group_id(req)
             kafka_request = DetectionsStreamRequest(
