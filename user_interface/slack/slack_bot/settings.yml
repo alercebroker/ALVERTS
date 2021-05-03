@@ -28,7 +28,7 @@ slack_bot:
           identifiers:
             - oid
             - candid
-      batch_size: 500
+          batch_size: 500
     - name: lag_report
       streams:
         - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}

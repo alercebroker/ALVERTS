@@ -151,7 +151,7 @@ The following is a description of each available option.
 - Required: *Condition*
   - ~if name == detections_report~
 - Type: array<str>
-******* batch_size
+********* batch_size
 - Description: detections report specific option. Defines the batch size for consuming from kafka topic
 - Required: *Condition*
   - ~if name == detections_report~
