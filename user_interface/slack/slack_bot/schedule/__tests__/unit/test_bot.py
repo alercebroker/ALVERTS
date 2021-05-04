@@ -110,7 +110,7 @@ Topic: ztf_%s_test, Group Id: xmatch, Bootstrap Servers: localhost:9094, Lag: 10
         container = bot_fixture[1]
         bot = bot_fixture[0]
         container.config.from_yaml(
-            "user_interface/slack/slack_bot/schedule/__tests__/settings_lag_multiple_streams.yml"
+            "user_interface/slack/slack_bot/schedule/__tests__/settings_multiple_streams.yml"
         )
         container.kafka_service.override(
             providers.Factory(MockKafkaService, state="success")
@@ -237,7 +237,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 0
         container = bot_fixture[1]
         bot = bot_fixture[0]
         container.config.from_yaml(
-            "user_interface/slack/slack_bot/schedule/__tests__/settings_lag_multiple_streams.yml"
+            "user_interface/slack/slack_bot/schedule/__tests__/settings_multiple_streams.yml"
         )
         container.kafka_service.override(
             providers.Factory(MockKafkaService, state="success")
@@ -252,6 +252,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 0
         date = datetime.datetime.today()
         date1 = date.strftime("%Y%m%d")
         date2 = date.strftime("%Y%m%d%H%M%S")
+        print(slack_client_mock.chat_postMessage.mock_calls)
         slack_client_mock.chat_postMessage.assert_called_once_with(
             channel="#test-bots",
             text=f"""Detections Report Success
@@ -265,7 +266,7 @@ Topic ztf_{date1}_test_2 from localhost:9094 with group id correction{date2} pro
         container = bot_fixture[1]
         bot = bot_fixture[0]
         container.config.from_yaml(
-            "user_interface/slack/slack_bot/schedule/__tests__/settings_lag_multiple_streams.yml"
+            "user_interface/slack/slack_bot/schedule/__tests__/settings_multiple_channels.yml"
         )
         container.kafka_service.override(
             providers.Factory(MockKafkaService, state="success")

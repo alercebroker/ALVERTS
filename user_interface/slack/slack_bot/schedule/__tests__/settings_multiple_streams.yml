@@ -1,0 +1,64 @@
+---
+slack_bot:
+  stage: testing
+  log_level: develop
+  slack_credentials:
+    token: test_token
+    signature: test_signature
+  reports:
+    - name: lag_report
+      streams:
+        - bootstrap_servers: localhost:9094
+          group_id: xmatch
+          topic_format: ztf_%s_test
+          date_format: "%Y%m%d"
+        - bootstrap_servers: localhost:9094
+          group_id: correction
+          topic_format: ztf_%s_test_2
+          date_format: "%Y%m%d"
+    - name: detections_report
+      streams:
+        - bootstrap_servers: localhost:9094
+          group_id_format: xmatch%s
+          topic_format: ztf_%s_test
+          date_format: "%Y%m%d"
+          identifiers:
+            - oid
+            - candid
+        - bootstrap_servers: localhost:9094
+          group_id_format: correction%s
+          topic_format: ztf_%s_test_2
+          date_format: "%Y%m%d"
+          identifiers:
+            - oid
+            - candid
+      database:
+        - host: localhost
+          database: postgres
+          user: postgres
+          password: postgres
+          port: 5432
+          detections_table_name: detections
+          detections_id_field: candid
+        - host: localhost
+          database: postgres
+          user: postgres
+          password: postgres
+          port: 5432
+          detections_table_name: detections
+          detections_id_field: candid
+  schedule:
+    - period: every_day
+      report: lag_report
+      channels:
+        - test-bots
+      times:
+        - '12:00'
+        - '16:00'
+    - period: every_day
+      report: detections_report
+      channels:
+        - test-bots
+      times:
+        - '12:00'
+        - '16:00'

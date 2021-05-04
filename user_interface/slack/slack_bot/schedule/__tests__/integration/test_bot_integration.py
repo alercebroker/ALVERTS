@@ -6,6 +6,15 @@ from typing import List, NewType, Tuple
 from dependency_injector import providers
 import sys
 import datetime
+from tests.conftest import (
+    kafka_service,
+    psql_service,
+    second_database,
+    consume,
+    init_first_db,
+    init_second_db,
+    produce_from_avro,
+)
 
 BOT_FIXTURE = NewType("BOT_FIXTURE", Tuple[bot.ScheduledBot, SlackContainer])
 
@@ -25,7 +34,7 @@ def bot_fixture():
 
 class TestStreamLagCheck:
     def test_should_return_success_report_and_post_to_slack(
-        self, kafka_service, consume, bot_fixture
+        self, kafka_service, produce_from_avro, consume, bot_fixture
     ):
         consume("test_get_lag_success", "test", 1, 1)
 
@@ -62,7 +71,7 @@ class TestStreamLagCheck:
         assert response["status_code"] == 200
 
     def test_should_return_success_report_and_fail_post_to_slack(
-        self, kafka_service, consume, bot_fixture: BOT_FIXTURE
+        self, kafka_service, consume, produce_from_avro, bot_fixture: BOT_FIXTURE
     ):
         consume("test_get_lag_success_slack_error", "test", 1, 1)
         container = bot_fixture[1]
@@ -99,7 +108,7 @@ class TestStreamLagCheck:
         )
 
     def test_should_return_failed_report_and_post_to_slack(
-        self, kafka_service, bot_fixture: BOT_FIXTURE
+        self, kafka_service, produce_from_avro, bot_fixture: BOT_FIXTURE
     ):
 
         container = bot_fixture[1]
@@ -136,7 +145,7 @@ Topic: test, Group Id: test_get_lag_check_fail, Bootstrap Servers: localhost:909
         assert response["status_code"] == 200
 
     def test_should_work_with_multiple_streams(
-        self, kafka_service, bot_fixture: BOT_FIXTURE
+        self, kafka_service, produce_from_avro, bot_fixture: BOT_FIXTURE
     ):
         container = bot_fixture[1]
         bot = bot_fixture[0]
@@ -181,7 +190,7 @@ Topic: test2, Group Id: test_get_lag_multiple, Bootstrap Servers: localhost:9094
 
 class TestDetectionsReport:
     def test_should_return_success_report_and_post_to_slack(
-        self, kafka_service, psql_service, init_first_db, bot_fixture
+        self, kafka_service, produce_from_avro, psql_service, init_first_db, bot_fixture
     ):
         container = bot_fixture[1]
         scheduled_bot = bot_fixture[0]
@@ -231,7 +240,7 @@ Topic test from localhost:9094 with group id test_detections_report_success proc
         assert response["status_code"] == 200
 
     def test_should_return_check_fail_report_and_post_to_slack(
-        self, kafka_service, psql_service, init_first_db, bot_fixture
+        self, kafka_service, produce_from_avro, psql_service, init_first_db, bot_fixture
     ):
         container = bot_fixture[1]
         scheduled_bot = bot_fixture[0]
@@ -283,6 +292,7 @@ Topic test from localhost:9094 with group id test_detections_report_fail process
     def test_should_work_with_two_databases(
         self,
         kafka_service,
+        produce_from_avro,
         psql_service,
         second_database,
         init_first_db,
@@ -357,6 +367,7 @@ Topic test2 from localhost:9094 with group id test_detections_two_database_2 pro
     def test_should_work_with_two_databases_check_fail(
         self,
         kafka_service,
+        produce_from_avro,
         psql_service,
         second_database,
         init_first_db,
@@ -431,6 +442,7 @@ Topic test2 from localhost:9094 with group id test_detections_two_database_2_che
     def test_should_work_with_two_databases_wrong_db(
         self,
         kafka_service,
+        produce_from_avro,
         psql_service,
         init_first_db,
         bot_fixture,
