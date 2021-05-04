@@ -8,7 +8,8 @@ from flask import Response
 from slack.web.client import WebClient
 from slack.signature.verifier import SignatureVerifier
 from typing import Union, List, NewType, Dict
-
+from datetime import datetime
+import tzlocal
 SlackParameters = NewType("SlackParameters", Dict[str, str])
 
 
@@ -68,6 +69,23 @@ class SlackExporter(ReportPresenter):
             self.view["status_code"] = post_response.status_code
         else:
             self.view.status_code = post_response.status_code
+
+    def export_stamp_classifications_report(self, report: StampClassificationsResponseModel):
+        try:
+            text = self._parse_stamp_classifications_report_to_string(report)
+        except Exception as e:
+            self.handle_application_error(ClientException(f"Error parsing report: {e}"))
+            return
+
+        post_response = self.post_to_slack(text)
+        if not post_response:
+            return
+
+        if isinstance(self.view, dict):
+            self.view["status_code"] = post_response.status_code
+        else:
+            self.view.status_code = post_response.status_code
+
 
     def handle_client_error(self, error: ClientException):
         message = f"Client Error: {error}"
@@ -136,6 +154,24 @@ class SlackExporter(ReportPresenter):
 
         return post_message
 
+    def _parse_stamp_classifications_report_to_string(self, report: StampClassificationsResponseModel):
+        tz = tzlocal.get_localzone()
+        today = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
+        res = ""
+        if len(report.counts) == 0:
+            final_res = f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):
+            :red_circle: No alerts today
+            """
+            return final_res
+        
+        else:
+            for r in report.counts:
+                res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
+            final_res = f""":astronaut:  :page_facing_up: ALeRCE's report of today ({today}):
+            • Stamp classifier distribution: \n {res}"""
+
+        return final_res
+        
     def post_to_slack(self, text: str):
         try:
             channels = self.slack_parameters.get("channel_names")

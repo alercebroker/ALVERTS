@@ -48,3 +48,23 @@ class TestGetDetectionsReport:
         )
         controller.request_model_creator.to_request_model.assert_called()
         controller.use_cases["detections_report"].execute.assert_called()
+
+class TestGetStampClassificationsReport:
+    @pytest.fixture
+    def controller(self):
+        return ReportController(
+            mock.MagicMock(), {"stamp_classifications_report": mock.MagicMock()}, mock.MagicMock()
+        )
+    
+    def test_should_call_success(self, controller):
+        controller.get_report(
+            {
+                "database": {
+                    "table_names": "",
+                    "mjd_name": ""
+                }
+            },
+            "stamp_classifications_report"
+        )
+        controller.request_model_creator.to_request_model.assert_called()
+        controller.use_cases["stamp_classifications_report"].execute.assert_called()

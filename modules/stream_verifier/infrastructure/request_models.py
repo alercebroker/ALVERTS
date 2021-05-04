@@ -16,3 +16,10 @@ class DetectionsReportRequestModel:
     def params(self):
         for i, stream in enumerate(self.streams):
             yield stream, self.tables[i]
+
+
+@dataclass
+class StampClassificationsReportRequestModel:
+    db_url: str
+    table_names: List[str]
+    mjd_name: str

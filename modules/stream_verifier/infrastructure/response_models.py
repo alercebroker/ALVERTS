@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from dataclasses import dataclass, field
 
 
@@ -29,4 +29,10 @@ class DifferenceResponse:
 @dataclass
 class DetectionsReportResponseModel:
     streams: List[DifferenceResponse]
+    success: bool
+
+@dataclass
+class StampClassificationsReportResponseModel:
+    counts: List[Tuple[str, int]]
+    db_url: str
     success: bool

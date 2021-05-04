@@ -4,6 +4,7 @@ from typing import List, NewType, Dict, Union
 from modules.stream_verifier.infrastructure.request_models import (
     LagReportRequestModel,
     DetectionsReportRequestModel,
+    StampClassificationsRequestModel
 )
 from shared.gateways.request_models import KafkaRequest, TableRequest
 import datetime
@@ -14,16 +15,21 @@ DetectionsRequest = NewType(
     "DetectionsRequest", Dict[str, List[Union[StreamDict, DBDict]]]
 )
 LagRequest = NewType("LagRequest", Dict[str, Union[str, List[StreamDict]]])
+StampClassificationsRequest = NewType(
+    "StampClassificationsRequest", Dict[str, str]
+)
 
 
 class SlackRequestModelCreator(RequestModelCreator):
     def to_request_model(
-        self, request: Union[LagRequest, DetectionsRequest], report: str
+        self, request: Union[LagRequest, DetectionsRequest, StampClassificationsRequest], report: str
     ):
         if report == "lag_report":
             return self._parse_lag_request_model(request)
         if report == "detections_report":
             return self._parse_detections_request_model(request)
+        if report == "stamp_classifications_report":
+            return self._parse_stamp_classifications_request_model(request)
 
     def _parse_lag_request_model(self, request: LagRequest):
         request_model = LagReportRequestModel()
@@ -55,6 +61,14 @@ class SlackRequestModelCreator(RequestModelCreator):
 
         return request_model
 
+    def _parse_stamp_classifications_request_model(self, request: StampClassificationsRequest):
+        request_model = StampClassificationsRequestModel()
+        request_model.db_url = self._parse_db_url(request)
+        request_model.table_names = request['table_names']
+        request_model.mjd_name = request['mjd_name']
+
+        return request_model
+
     def _parse_topic(self, req: Union[LagRequest, DetectionsRequest]):
         if "topic" in req:
             return req["topic"]
@@ -74,3 +88,9 @@ class SlackRequestModelCreator(RequestModelCreator):
             return req["group_id_format"] % date_group_id
         else:
             raise Exception("Can't create request model")
+    
+    def _parse_db_url(self, req: Dict[str, str]):
+        base_uri = "postgresql://{}:{}@{}:{}/{}"
+        return base_uri.format(
+            req["user"], req["password"], req["host"], req["port"], req["database"]
+        )

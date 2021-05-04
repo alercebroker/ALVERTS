@@ -1,5 +1,6 @@
 from modules.stream_verifier.domain.lag_report import LagReport
 from modules.stream_verifier.domain.detections_report import DetectionsReport
+from modules.stream_verifier.domain.stamp_classifications_report import StampClassificationsReport
 from .response_models import LagReportResponseModel, StreamResponse
 from shared import Result
 from shared.gateways.response_models import KafkaResponse
@@ -7,6 +8,7 @@ from typing import List
 from modules.stream_verifier.infrastructure.response_models import (
     DetectionsReportResponseModel,
     DifferenceResponse,
+    StampClassificationsReportResponseModel
 )
 
 
@@ -33,6 +35,18 @@ class EntityParser:
                 group_id=kafka_resp.topic,
                 difference=db_resp,
                 total_alerts=len(kafka_resp.data),
+            )
+            return Result.Ok(report)
+        except Exception as e:
+            return Result.Fail(e)
+    
+    def to_stamp_classifications_report(
+        self, db_resp: List
+    ) -> Result[StampClassificationsReport, Exception]:
+        
+        try:            
+            report = StampClassificationsReport(
+                counts= db_resp
             )
             return Result.Ok(report)
         except Exception as e:
@@ -97,3 +111,24 @@ class ResponseModelParser:
             )
         except Exception as e:
             return Result.Fail(e)
+    
+    def to_stamp_classifications_report_response_model(
+        self, db_url: str, report: StampClassificationsReport
+    ) -> Result[StampClassificationsReportResponseModel, Exception]:
+
+        success = True
+        try:
+            return Result.Ok(StampClassificationsReportResponseModel(
+                                counts = report.counts,
+                                db_url = db_url,
+                                success = success
+            ))
+        except Exception as e:
+            return Result.Fail(e)
+
+
+        
+        
+        
+
+        

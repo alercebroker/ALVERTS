@@ -4,6 +4,7 @@ from typing import Dict, Any, Union, List
 from .request_model_creator import RequestModelCreator
 from modules.stream_verifier.infrastructure.response_models import (
     LagReportResponseModel,
+    StampClassificationsReportResponseModel,
 )
 
 
@@ -56,6 +57,20 @@ class ReportController:
 
             def on_success(response_model: LagReportResponseModel):
                 self.presenter.export_detections_report(response_model)
+
+            callbacks = {
+                "success": on_success,
+                "client_error": on_client_error,
+                "external_error": on_external_error,
+                "application_error": on_application_error,
+            }
+
+            return callbacks
+        
+        if report_type == "stamp_classifications_report":
+
+            def on_success(response_model: StampClassificationsReportResponseModel):
+                self.presenter.export_stamp_classifications_report(response_model)
 
             callbacks = {
                 "success": on_success,

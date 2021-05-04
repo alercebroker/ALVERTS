@@ -11,17 +11,18 @@ from modules.stream_verifier.infrastructure import (
 from modules.stream_verifier.infrastructure.request_models import (
     LagReportRequestModel,
     DetectionsReportRequestModel,
+    StampClassificationsReportRequestModel
 )
 
 
 @pytest.fixture
 def verifier():
-    def _create(test_case_kafka: str, test_case_psql: str = None):
+    def _create(test_case_kafka: str, report_type: str, test_case_psql: str = None):
         if not test_case_psql:
             test_case_psql = test_case_kafka
         verifier = StreamVerifier(
             MockKafkaService(test_case_kafka),
-            MockPsqlService(test_case_psql),
+            MockPsqlService(test_case_psql, report_type),
         )
         return verifier
 
@@ -93,6 +94,26 @@ class TestDetectionsReport:
         tables = [TableRequest("test", "test", ["oid", "candid"])]
         result = verifier("success", "external_error").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
+        )
+        assert not result.success
+        assert type(result.error) == ExternalException
+
+class TestStampClassificationsReport:
+    def test_success_with_check_success(self, verifier):
+        db_url = "test"
+        table_names = ["test1", "test2"]
+        mjd_name = "test"
+        result = verifier("success", "stamp_classifications_report").get_stamp_classifications_report(
+            StampClassificationsReportRequestModel(db_url, table_names, mjd_name)
+        )
+        assert result.success
+        assert result.value.success
+    def test_fail_with_psql_error(self, verifier):
+        db_url = "test"
+        table_names = ["test1", "test2"]
+        mjd_name = "test"
+        result = verifier("external_error", "stamp_classifications_report").get_stamp_classifications_report(
+            StampClassificationsReportRequestModel(db_url, table_names, mjd_name)
         )
         assert not result.success
         assert type(result.error) == ExternalException
