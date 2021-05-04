@@ -13,10 +13,6 @@ from user_interface.slack.adapters.slack_request_model_creator import (
 from shared.gateways.psql import PsqlService
 from modules.stream_verifier.use_cases.get_detections_report import GetDetectionsReport
 from modules.stream_verifier.use_cases.get_stamp_classifications_report import GetStampClassificationsReport
-from user_interface.slack.slack_bot.utils.streams import (
-    get_kafka_streams_detections_report,
-    get_kafka_streams_lag_report,
-)
 
 
 class SlackContainer(containers.DeclarativeContainer):
@@ -29,9 +25,11 @@ class SlackContainer(containers.DeclarativeContainer):
     )
     db_service = providers.Singleton(PsqlService)
 
-    slack_client = providers.Singleton(WebClient, token=config.slack.SLACK_BOT_TOKEN)
+    slack_client = providers.Singleton(
+        WebClient, token=config.slack_bot.slack_credentials.token
+    )
     slack_signature_verifier = providers.Singleton(
-        SignatureVerifier, signing_secret=config.slack.SLACK_SIGNATURE
+        SignatureVerifier, signing_secret=config.slack_bot.slack_credentials.signature
     )
 
     # Main service

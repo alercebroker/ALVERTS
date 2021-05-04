@@ -32,7 +32,7 @@ class EntityParser:
             report = DetectionsReport(
                 bootstrap_servers=kafka_resp.bootstrap_servers,
                 topic=kafka_resp.topic,
-                group_id=kafka_resp.topic,
+                group_id=kafka_resp.group_id,
                 difference=db_resp,
                 total_alerts=len(kafka_resp.data),
             )

@@ -6,6 +6,7 @@ from modules.stream_verifier.infrastructure.response_models import (
     LagReportResponseModel,
     StampClassificationsReportResponseModel,
 )
+import logging
 
 
 class ReportController:

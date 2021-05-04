@@ -33,7 +33,7 @@ class SlackExporter(ReportPresenter):
     def set_slack_parameters(self, slack_parameters: List[SlackParameters]):
         if slack_parameters.get("channel_names") is None:
             self.handle_request_error(
-                ClientException("Parameters must include channel_name")
+                ClientException("Parameters must include channel_names")
             )
             return
         self.slack_parameters = slack_parameters
@@ -51,8 +51,10 @@ class SlackExporter(ReportPresenter):
 
         if isinstance(self.view, dict):
             self.view["status_code"] = post_response.status_code
+            self.view["data"] = text
         else:
             self.view.status_code = post_response.status_code
+            self.view.data = text
 
     def export_detections_report(self, report: DetectionsReportResponseModel):
         try:
@@ -67,8 +69,10 @@ class SlackExporter(ReportPresenter):
 
         if isinstance(self.view, dict):
             self.view["status_code"] = post_response.status_code
+            self.view["data"] = text
         else:
             self.view.status_code = post_response.status_code
+            self.view.data = text
 
     def export_stamp_classifications_report(self, report: StampClassificationsResponseModel):
         try:

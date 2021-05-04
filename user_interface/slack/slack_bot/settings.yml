@@ -6,68 +6,61 @@ slack_bot:
     token: ${SLACK_BOT_TOKEN}
     signature: ${SLACK_BOT_SIGNATURE}
   reports:
-    - detections:
-        name: detections_report
-        database:
-          # Add as many databases as you want to check
-          # Keep in mind: One database entry per topic
-          # For kafka topics use the streams field below
-          - production:
-              host: ${DB_HOST_PROD}
-              database: ${DB_DATABASE_PROD}
-              user: ${DB_USER_PROD}
-              password: ${DB_PASSWORD_PROD}
-              port: ${DB_PORT_PROD}
-        streams:
-          # Add as many kafka servers and topics you want to check
-          # Keep in mind: One stream entry per topic
-          - production:
-              bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
-              group_id_format: ${KAFKA_GROUP_ID_FORMAT}
-              topic_format: ${KAFKA_TOPIC_FORMAT}
-              date_format: ${KAFKA_SOURCE_DATE_FORMAT}
-        batch_size: 500
-    - lag:
-        name: lag_report
-        streams:
-          - production_source_xmatch:
-              bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
-              group_id: ${KAFKA_GROUP_ID_XMATCH}
-              topic_format: ${KAFKA_SOURCE_TOPIC_FORMAT}
-              date_format: ${KAFKA_SOURCE_DATE_FORMAT}
-              #topic: ${KAFKA_TOPIC}
-          - production_source_stamp_classifier:
-              bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
-              group_id: ${KAFKA_GROUP_ID_STAMP}
-              topic_format: ${KAFKA_SOURCE_TOPIC_FORMAT}
-              date_format: ${KAFKA_SOURCE_DATE_FORMAT}
-          - production_xmatch:
-              bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
-              group_id: ${KAFKA_GROUP_ID_CORRECTION}
-              topic: ${KAFKA_TOPIC_XMATCH}
-          - production_correction:
-              bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
-              group_id: ${KAFKA_GROUP_ID_FEATURE}
-              topic: ${KAFKA_TOPIC_CORRECTION}
-          - production_feature:
-              bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
-              group_id: ${KAFKA_GROUP_ID_LC_CLASSIFIER}
-              topic: ${KAFKA_TOPIC_FEATURE}
+    - name: detections_report
+      database:
+        # Add as many databases as you want to check
+        # Keep in mind: One database entry per topic
+        # For kafka topics use the streams field below
+        - host: ${DB_HOST_PROD}
+          database: ${DB_DATABASE_PROD}
+          user: ${DB_USER_PROD}
+          password: ${DB_PASSWORD_PROD}
+          port: ${DB_PORT_PROD}
+          detections_table_name: ${DETECTIONS_TABLE_PROD}
+          detections_id_field: ${DETECTIONS_ID_FIELD_PROD}
+      streams:
+        # Add as many kafka servers and topics you want to check
+        # Keep in mind: One stream entry per topic
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id_format: ${KAFKA_GROUP_ID_FORMAT}
+          topic_format: ${KAFKA_TOPIC_FORMAT}
+          date_format: ${KAFKA_SOURCE_DATE_FORMAT}
+          identifiers:
+            - oid
+            - candid
+          batch_size: 500
+    - name: lag_report
+      streams:
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id: ${KAFKA_GROUP_ID_XMATCH}
+          topic_format: ${KAFKA_SOURCE_TOPIC_FORMAT}
+          date_format: ${KAFKA_SOURCE_DATE_FORMAT}
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id: ${KAFKA_GROUP_ID_STAMP}
+          topic_format: ${KAFKA_SOURCE_TOPIC_FORMAT}
+          date_format: ${KAFKA_SOURCE_DATE_FORMAT}
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id: ${KAFKA_GROUP_ID_CORRECTION}
+          topic: ${KAFKA_TOPIC_XMATCH}
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id: ${KAFKA_GROUP_ID_FEATURE}
+          topic: ${KAFKA_TOPIC_CORRECTION}
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id: ${KAFKA_GROUP_ID_LC_CLASSIFIER}
+          topic: ${KAFKA_TOPIC_FEATURE}
   schedule:
-    - lag:
-        period: every_day
-        report: lag_report
-        channels:
-          - test-bots
-        times:
-          - '12:00'
-          - '16:00'
-    - detections:
-        period: every_day
-        report: detections_report
-        channels:
-          - test-bots
-        times:
-          - '16:00'
+    - period: every_day
+      report: lag_report
+      channels:
+        - test-bots
+      times:
+        - '12:00'
+        - '16:00'
+    - period: every_day
+      report: detections_report
+      channels:
+        - test-bots
+      times:
+        - '16:00'
         
         

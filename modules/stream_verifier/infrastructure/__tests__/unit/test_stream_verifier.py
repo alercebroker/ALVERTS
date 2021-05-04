@@ -1,6 +1,5 @@
 import pytest
 from shared import ClientException, ExternalException
-from shared.gateways.request_models import KafkaRequest, TableRequest
 from shared.gateways.__tests__.kafka.mocks import MockKafkaService
 from shared.gateways.__tests__.psql.mocks import MockPsqlService
 from modules.stream_verifier.infrastructure import (
@@ -9,10 +8,14 @@ from modules.stream_verifier.infrastructure import (
     ResponseModelParser,
 )
 from modules.stream_verifier.infrastructure.request_models import (
-    LagReportRequestModel,
     DetectionsReportRequestModel,
     StampClassificationsReportRequestModel
+    DetectionsTableRequest,
+    LagReportRequestModel,
+    DetectionsTableRequest,
+    DetectionsStreamRequest,
 )
+from shared.gateways.request_models import KafkaRequest
 
 
 @pytest.fixture
@@ -59,8 +62,10 @@ class TestLagReport:
 
 class TestDetectionsReport:
     def test_success_with_check_success(self, verifier):
-        streams = [KafkaRequest("test", "test", "test")]
-        tables = [TableRequest("test", "test", ["oid", "candid"])]
+        streams = [
+            DetectionsStreamRequest("test", "test", "test", 1, ["oid", "candid"])
+        ]
+        tables = [DetectionsTableRequest("test", "test", "test")]
         result = verifier("success").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )
@@ -68,8 +73,10 @@ class TestDetectionsReport:
         assert result.value.success
 
     def test_success_with_check_fail(self, verifier):
-        streams = [KafkaRequest("test", "test", "test")]
-        tables = [TableRequest("test", "test", ["oid", "candid"])]
+        streams = [
+            DetectionsStreamRequest("test", "test", "test", 1, ["oid", "candid"])
+        ]
+        tables = [DetectionsTableRequest("test", "test", "test")]
         result = verifier("check_fail").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )
@@ -81,8 +88,10 @@ class TestDetectionsReport:
             assert len(stream.difference) == 2
 
     def test_fail_with_kafka_error(self, verifier):
-        streams = [KafkaRequest("test", "test", "test")]
-        tables = [TableRequest("test", "test", ["oid", "candid"])]
+        streams = [
+            DetectionsStreamRequest("test", "test", "test", 1, ["oid", "candid"])
+        ]
+        tables = [DetectionsTableRequest("test", "test", "test")]
         result = verifier("external_error", "success").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )
@@ -90,8 +99,10 @@ class TestDetectionsReport:
         assert type(result.error) == ExternalException
 
     def test_fail_with_psql_error(self, verifier):
-        streams = [KafkaRequest("test", "test", "test")]
-        tables = [TableRequest("test", "test", ["oid", "candid"])]
+        streams = [
+            DetectionsStreamRequest("test", "test", "test", 1, ["oid", "candid"])
+        ]
+        tables = [DetectionsTableRequest("test", "test", "test")]
         result = verifier("success", "external_error").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )
