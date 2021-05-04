@@ -78,6 +78,35 @@ class ScheduledBot:
             f"Report: detections_report, status: { response[ 'status_code' ] }, data: {response['data']}"
         )
         return response
+    
+    @inject
+    def stamp_classifications_report(
+        self,
+        controller: ReportController = Provide[SlackContainer.slack_controller],
+        params: dict = Provide[SlackContainer.config.slack_bot],
+    ):
+        self.logger.info("Producing stamp_classifications report")
+        stamp_classifications_report_params = next(
+            filter(
+                lambda report: report["name"] == "stamp_classifications_report", params["reports"]
+            )
+        )
+        schedule_params = next(
+            filter(
+                lambda schedule: schedule["report"] == "stamp_classifications_report",
+                params["schedule"],
+            )
+        )
+        request = {"channel_names": schedule_params["channels"], "user_name": "bot"}
+        response = {"data": "", "status_code": 200}
+        controller.presenter.set_view(response)
+        controller.presenter.set_slack_parameters(request)
+        if controller.presenter.view["status_code"] == 200:
+            controller.get_report(stamp_classifications_report_params, "stamp_classifications_report")
+        self.logger.info(
+            f"Report: stamp_classifications, status: { response[ 'status_code' ] }, data: {response['data']}"
+        )
+        return response
 
     @inject
     def schedule(self, params: dict = Provide[SlackContainer.config.slack_bot]) -> List:

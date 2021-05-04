@@ -8,7 +8,8 @@ from typing import List
 from modules.stream_verifier.infrastructure.response_models import (
     DetectionsReportResponseModel,
     DifferenceResponse,
-    StampClassificationsReportResponseModel
+    StampClassificationsReportResponseModel,
+    StampDatabaseResponse
 )
 
 
@@ -41,18 +42,36 @@ class EntityParser:
             return Result.Fail(e)
     
     def to_stamp_classifications_report(
-        self, db_resp: List
+        self, db_resp: List, db_url:str
     ) -> Result[StampClassificationsReport, Exception]:
         
-        try:            
+        try:
+            host, db = self._get_host_and_database_from_url(db_url)
             report = StampClassificationsReport(
-                counts= db_resp
+                counts= db_resp,
+                host = host,
+                database= db
             )
             return Result.Ok(report)
         except Exception as e:
             return Result.Fail(e)
+    
+    def _get_host_and_database_from_url(self, db_url: str):
 
+        # "postgresql://postgres:postgres@localhost:5432/postgres"
+        list_string = db_url.split('@')
+        # ["postgresql://postgres:postgres", "localhost:5432/postgres"]
+        host = ""
+        db = ""
+        if len(list_string) == 2:
 
+            host_and_db = list_string[1].split('/')
+            # ["localhost:5432", "postgres"]
+            host = host_and_db[0].split(':')[0]
+            db = host_and_db[1]
+        
+        return host, db
+        
 class ResponseModelParser:
     def to_lag_report_response_model(
         self, reports: List[LagReport]
@@ -113,16 +132,24 @@ class ResponseModelParser:
             return Result.Fail(e)
     
     def to_stamp_classifications_report_response_model(
-        self, db_url: str, report: StampClassificationsReport
+        self, reports: List[StampClassificationsReport]
     ) -> Result[StampClassificationsReportResponseModel, Exception]:
 
         success = True
+        databases: List[StampDatabaseResponse] = []
         try:
-            return Result.Ok(StampClassificationsReportResponseModel(
-                                counts = report.counts,
-                                db_url = db_url,
-                                success = success
-            ))
+            for report in reports:
+                databases.append(
+                    StampDatabaseResponse(
+                        report.counts,
+                        report.host,
+                        report.database
+                    )
+                )
+                success = report.check_success()
+            return Result.Ok(
+                StampClassificationsReportResponseModel(databases = databases, success = success)
+            )
         except Exception as e:
             return Result.Fail(e)
 

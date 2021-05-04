@@ -9,14 +9,14 @@ from modules.stream_verifier.infrastructure import (
 )
 from modules.stream_verifier.infrastructure.request_models import (
     DetectionsReportRequestModel,
-    StampClassificationsReportRequestModel
+    StampClassificationsReportRequestModel,
+    StampClassificationsDBRequest,
     DetectionsTableRequest,
     LagReportRequestModel,
     DetectionsTableRequest,
     DetectionsStreamRequest,
 )
 from shared.gateways.request_models import KafkaRequest
-
 
 @pytest.fixture
 def verifier():
@@ -66,7 +66,7 @@ class TestDetectionsReport:
             DetectionsStreamRequest("test", "test", "test", 1, ["oid", "candid"])
         ]
         tables = [DetectionsTableRequest("test", "test", "test")]
-        result = verifier("success").get_detections_report(
+        result = verifier("success", "detections_report").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )
         assert result.success
@@ -77,7 +77,7 @@ class TestDetectionsReport:
             DetectionsStreamRequest("test", "test", "test", 1, ["oid", "candid"])
         ]
         tables = [DetectionsTableRequest("test", "test", "test")]
-        result = verifier("check_fail").get_detections_report(
+        result = verifier("check_fail", "detections_report").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )
         assert result.success
@@ -92,7 +92,7 @@ class TestDetectionsReport:
             DetectionsStreamRequest("test", "test", "test", 1, ["oid", "candid"])
         ]
         tables = [DetectionsTableRequest("test", "test", "test")]
-        result = verifier("external_error", "success").get_detections_report(
+        result = verifier("external_error", "detections_report", "success").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )
         assert not result.success
@@ -103,7 +103,7 @@ class TestDetectionsReport:
             DetectionsStreamRequest("test", "test", "test", 1, ["oid", "candid"])
         ]
         tables = [DetectionsTableRequest("test", "test", "test")]
-        result = verifier("success", "external_error").get_detections_report(
+        result = verifier("success", "detections_report", "external_error").get_detections_report(
             DetectionsReportRequestModel(streams, tables)
         )
         assert not result.success
@@ -111,20 +111,20 @@ class TestDetectionsReport:
 
 class TestStampClassificationsReport:
     def test_success_with_check_success(self, verifier):
-        db_url = "test"
-        table_names = ["test1", "test2"]
-        mjd_name = "test"
+        databases = [
+            StampClassificationsDBRequest("test", ["test1", "test2"], "test")
+        ]
         result = verifier("success", "stamp_classifications_report").get_stamp_classifications_report(
-            StampClassificationsReportRequestModel(db_url, table_names, mjd_name)
+            StampClassificationsReportRequestModel(databases)
         )
         assert result.success
         assert result.value.success
     def test_fail_with_psql_error(self, verifier):
-        db_url = "test"
-        table_names = ["test1", "test2"]
-        mjd_name = "test"
+        databases = [
+            StampClassificationsDBRequest("test", "test", "test")
+        ]
         result = verifier("external_error", "stamp_classifications_report").get_stamp_classifications_report(
-            StampClassificationsReportRequestModel(db_url, table_names, mjd_name)
+            StampClassificationsReportRequestModel(databases)
         )
         assert not result.success
         assert type(result.error) == ExternalException

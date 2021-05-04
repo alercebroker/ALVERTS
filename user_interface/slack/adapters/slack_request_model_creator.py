@@ -4,7 +4,8 @@ from typing import List, NewType, Dict, Union
 from modules.stream_verifier.infrastructure.request_models import (
     LagReportRequestModel,
     DetectionsReportRequestModel,
-    StampClassificationsRequestModel
+    StampClassificationsReportRequestModel,
+    StampClassificationsDBRequest,
     DetectionsTableRequest,
     DetectionsStreamRequest,
 )
@@ -66,11 +67,14 @@ class SlackRequestModelCreator(RequestModelCreator):
         return request_model
 
     def _parse_stamp_classifications_request_model(self, request: StampClassificationsRequest):
-        request_model = StampClassificationsRequestModel()
-        request_model.db_url = self._parse_db_url(request)
-        request_model.table_names = request['table_names']
-        request_model.mjd_name = request['mjd_name']
-
+        request_model = StampClassificationsReportRequestModel()
+        for req in request["database"]:
+            database_request = StampClassificationsDBRequest(
+                self._parse_db_url(req),
+                req['table_names'],
+                req['mjd_name']
+            )
+            request_model.databases.append(database_request)
         return request_model
 
     def _parse_topic(self, req: Union[LagRequest, DetectionsRequest]):

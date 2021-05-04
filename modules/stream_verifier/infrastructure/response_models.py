@@ -32,7 +32,12 @@ class DetectionsReportResponseModel:
     success: bool
 
 @dataclass
-class StampClassificationsReportResponseModel:
+class StampDatabaseResponse:
     counts: List[Tuple[str, int]]
-    db_url: str
+    host: str
+    database: str
+
+@dataclass
+class StampClassificationsReportResponseModel:
+    databases: List[StampDatabaseResponse]
     success: bool

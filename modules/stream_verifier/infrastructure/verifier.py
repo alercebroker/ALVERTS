@@ -84,26 +84,29 @@ class StreamVerifier(IStreamVerifier):
         self, request_model: StampClassificationsReportRequestModel
     ) -> Result[StampClassificationsReportResponseModel, Exception]:
         self.logger.info("Getting stamp classifications report")
-        report = None
-        try:
-            def parse_function(db_response):
-                return self._entity_parser.to_stamp_classifications_report(
-                    db_response
-                )
-            self.db_service.connect(request_model.db_url)
-            report = self._get_stamp_classifier_inference(
-                        request_model.table_names, 
-                        request_model.mjd_name, 
-                        parse_function
-                        )
-        except Exception as e:
-            err = f"Error with database {e}"
-            self.logger.error(err)
-            return Result.Fail(ExternalException(err))
-        if not report.success:
-            return report
+        reports = []
+        for database in request_model.databases:
+            try:
+                def parse_function(db_response):
+                    return self._entity_parser.to_stamp_classifications_report(
+                        db_response, database.db_url
+                    )
+                self.db_service.connect(database.db_url)
+                reports.append(self._get_stamp_classifier_inference(
+                            database.table_names, 
+                            database.mjd_name, 
+                            parse_function
+                            ))
+            except Exception as e:
+                err = f"Error with database {e}"
+                self.logger.error(err)
+                return Result.Fail(ExternalException(err))
+        
+        combined_reports = Result.combine(reports)
+        if not combined_reports.success:
+            return combined_reports
         return self._response_model_parser.to_stamp_classifications_report_response_model(
-            request_model.db_url, report.value
+            combined_reports.value
         )
 
     def _get_stamp_classifier_inference(self, table_names: list, mjd_name: str, parser: Callable)-> list:

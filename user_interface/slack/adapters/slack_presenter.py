@@ -3,6 +3,7 @@ from user_interface.adapters.presenter import ReportPresenter
 from modules.stream_verifier.infrastructure.response_models import (
     LagReportResponseModel,
     DetectionsReportResponseModel,
+    StampClassificationsReportResponseModel
 )
 from flask import Response
 from slack.web.client import WebClient
@@ -74,7 +75,7 @@ class SlackExporter(ReportPresenter):
             self.view.status_code = post_response.status_code
             self.view.data = text
 
-    def export_stamp_classifications_report(self, report: StampClassificationsResponseModel):
+    def export_stamp_classifications_report(self, report: StampClassificationsReportResponseModel):
         try:
             text = self._parse_stamp_classifications_report_to_string(report)
         except Exception as e:
@@ -158,23 +159,20 @@ class SlackExporter(ReportPresenter):
 
         return post_message
 
-    def _parse_stamp_classifications_report_to_string(self, report: StampClassificationsResponseModel):
+    def _parse_stamp_classifications_report_to_string(self, report: StampClassificationsReportResponseModel):
         tz = tzlocal.get_localzone()
         today = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
+        post_message = f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t"""
         res = ""
-        if len(report.counts) == 0:
-            final_res = f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):
-            :red_circle: No alerts today
-            """
-            return final_res
+        for rep in report.databases:
+            if len(rep.counts) == 0:
+                post_message += f"""• Database: {rep.database}\n\t• Host: {rep.host}\n\t:red_circle: No alerts today\n"""
         
-        else:
-            for r in report.counts:
-                res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
-            final_res = f""":astronaut:  :page_facing_up: ALeRCE's report of today ({today}):
-            • Stamp classifier distribution: \n {res}"""
-
-        return final_res
+            else:
+                for r in rep.counts:
+                    res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
+                post_message += f"""• Database: {rep.database}\n\t• Host: {rep.host}\n\t• Stamp classifier distribution: \n {res}"""
+        return post_message
         
     def post_to_slack(self, text: str):
         try:

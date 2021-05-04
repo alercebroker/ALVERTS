@@ -62,5 +62,3 @@ slack_bot:
         - test-bots
       times:
         - '16:00'
-        
-        

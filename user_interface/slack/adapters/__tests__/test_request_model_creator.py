@@ -58,8 +58,9 @@ class TestToRequestModel:
     def test_stamp_classifications_report(self, creator):
         model = creator.to_request_model(
             {
-                "database":
-                    {
+                "database": [
+                    {   
+                        "host": "",
                         "database": "",
                         "user": "",
                         "password": "",
@@ -67,10 +68,11 @@ class TestToRequestModel:
                         "table_names": "",
                         "mjd_name": ""
                     }
+                ],
             },
             "stamp_classifications_report"
         )
-        assert len(model.counts) != 0
-        assert model.mjd_name == ""
-        assert model.table_names == ""
+        assert len(model.databases) == 1
+        assert model.databases[-1].mjd_name == ""
+        assert model.databases[-1].table_names == ""
         
