@@ -17,12 +17,12 @@ class TestSetSlackParameters:
         assert exporter.view["status_code"] == 400
         assert (
             exporter.view["data"]
-            == "Request Error: Parameters must include channel_name"
+            == "Request Error: Parameters must include channel_names"
         )
 
     def test_should_set_parameters(self, exporter):
-        exporter.set_slack_parameters({"channel_name": "test"})
-        assert exporter.slack_parameters.get("channel_name") == "test"
+        exporter.set_slack_parameters({"channel_names": "test"})
+        assert exporter.slack_parameters.get("channel_names") == "test"
 
 
 class TestExportLagReport:
@@ -35,7 +35,7 @@ class TestExportLagReport:
         assert exporter.view["status_code"] == 400
 
     def test_should_handle_error_when_parsing(self, exporter):
-        exporter.set_slack_parameters({"channel_name": "test"})
+        exporter.set_slack_parameters({"channel_names": "test"})
         report_mock = mock.MagicMock()
         report_mock.streams = ["something wrong"]
         report_mock.success = False
@@ -44,7 +44,7 @@ class TestExportLagReport:
 
     def test_should_handle_error_when_posting_message(self, exporter):
         exporter.client.chat_postMessage.side_effect = Exception("test")
-        exporter.set_slack_parameters({"channel_name": "test"})
+        exporter.set_slack_parameters({"channel_names": "test"})
         report_mock = mock.MagicMock()
         report_mock.success = True
         exporter.export_lag_report(report_mock)
@@ -53,7 +53,7 @@ class TestExportLagReport:
 
     def test_should_post_message_and_set_view_data(self, exporter):
         exporter.client.chat_postMessage.return_value.status_code = 200
-        exporter.set_slack_parameters({"channel_name": "test"})
+        exporter.set_slack_parameters({"channel_names": "test"})
         exporter.export_lag_report(mock.MagicMock())
         assert exporter.view["status_code"] == 200
 
@@ -68,7 +68,7 @@ class TestExportDetectionsReport:
         assert exporter.view["status_code"] == 400
 
     def test_should_handle_error_when_parsing(self, exporter):
-        exporter.set_slack_parameters({"channel_name": "test"})
+        exporter.set_slack_parameters({"channel_names": "test"})
         report_mock = mock.MagicMock()
         report_mock.streams = ["something wrong"]
         report_mock.success = False
@@ -77,7 +77,7 @@ class TestExportDetectionsReport:
 
     def test_should_handle_error_when_posting_message(self, exporter):
         exporter.client.chat_postMessage.side_effect = Exception("test")
-        exporter.set_slack_parameters({"channel_name": "test"})
+        exporter.set_slack_parameters({"channel_names": "test"})
         report_mock = mock.MagicMock()
         report_mock.success = True
         exporter.export_detections_report(report_mock)
@@ -86,7 +86,7 @@ class TestExportDetectionsReport:
 
     def test_should_post_message_and_set_view_data(self, exporter):
         exporter.client.chat_postMessage.return_value.status_code = 200
-        exporter.set_slack_parameters({"channel_name": "test"})
+        exporter.set_slack_parameters({"channel_names": "test"})
         exporter.export_detections_report(mock.MagicMock())
         assert exporter.view["status_code"] == 200
 

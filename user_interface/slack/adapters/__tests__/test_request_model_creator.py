@@ -11,13 +11,15 @@ class TestToRequestModel:
 
     def test_lag_report(self, creator):
         model = creator.to_request_model(
-            [
-                {
-                    "bootstrap_servers": "test",
-                    "group_id": "test",
-                    "topic": "test",
-                }
-            ],
+            {
+                "streams": [
+                    {
+                        "bootstrap_servers": "test",
+                        "group_id": "test",
+                        "topic": "test",
+                    }
+                ],
+            },
             "lag_report",
         )
         assert len(model.streams) == 1
@@ -31,13 +33,19 @@ class TestToRequestModel:
                         "bootstrap_servers": "test",
                         "group_id": "test",
                         "topic": "test",
+                        "identifiers": ["oid", "candid"],
+                        "batch_size": "500",
                     }
                 ],
                 "database": [
                     {
-                        "db_url": "test",
-                        "table_name": "test",
-                        "table_identifiers": ["oid", "candid"],
+                        "host": "test",
+                        "database": "test",
+                        "user": "test",
+                        "password": "test",
+                        "port": "5432",
+                        "detections_table_name": "test",
+                        "detections_id_field": "test",
                     }
                 ],
             },
@@ -45,4 +53,4 @@ class TestToRequestModel:
         )
         assert len(model.streams) == 1 and len(model.streams) == len(model.tables)
         assert model.streams[-1].bootstrap_servers == "test"
-        assert model.tables[-1].db_url == "test"
+        assert model.tables[-1].db_url == "postgresql://test:test@test:5432/test"
