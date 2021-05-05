@@ -133,7 +133,7 @@ class TestStreamDetectionsReport:
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="success")
+            providers.Factory(MockPsqlService, state="success", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -159,7 +159,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 2
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="success")
+            providers.Factory(MockPsqlService, state="success", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.side_effect = Exception(
@@ -182,7 +182,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 2
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="check_fail")
+            providers.Factory(MockPsqlService, state="check_fail", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -208,7 +208,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 0
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="external_error")
+            providers.Factory(MockPsqlService, state="external_error", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -226,7 +226,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 0
             providers.Factory(MockKafkaService, state="external_error")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="success")
+            providers.Factory(MockPsqlService, state="success", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -245,7 +245,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 0
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="success")
+            providers.Factory(MockPsqlService, state="success", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -274,7 +274,7 @@ Topic ztf_{date1}_test_2 from localhost:9094 with group id correction{date2} pro
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="success")
+            providers.Factory(MockPsqlService, state="success", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -319,7 +319,7 @@ class TestStampClassificationsReport:
         today = dt.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
         slack_client_mock.chat_postMessage.assert_called_once_with(
            channel="#test-bots",
-           text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t• Stamp classifier distribution: \n {res}""",
+           text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t• Stamp classifier distribution: \n {res}\t""",
         )
         assert response["status_code"] == 200
     

@@ -171,7 +171,7 @@ class TestParseStampClassificationsToString:
         database = StampDatabaseResponse(counts, "test", "test") 
         res = ""
         for r in counts:
-            res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
+            res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n\t"
         tz = tzlocal.get_localzone()
         today = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
         report = StampClassificationsReportResponseModel(databases = [database], success= True) 

@@ -163,15 +163,17 @@ class SlackExporter(ReportPresenter):
         tz = tzlocal.get_localzone()
         today = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
         post_message = f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t"""
-        res = ""
+        
         for rep in report.databases:
             if len(rep.counts) == 0:
-                post_message += f"""• Database: {rep.database}\n\t• Host: {rep.host}\n\t:red_circle: No alerts today\n"""
+                post_message += f"""• Database: {rep.database}\n\t• Host: {rep.host}\n\t:red_circle: No alerts today\n\t"""
         
             else:
+                res = ""
                 for r in rep.counts:
                     res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
-                post_message += f"""• Database: {rep.database}\n\t• Host: {rep.host}\n\t• Stamp classifier distribution: \n {res}"""
+                post_message += f"""• Database: {rep.database}\n\t• Host: {rep.host}\n\t• Stamp classifier distribution: \n {res}\t"""
+        print(post_message)
         return post_message
         
     def post_to_slack(self, text: str):
