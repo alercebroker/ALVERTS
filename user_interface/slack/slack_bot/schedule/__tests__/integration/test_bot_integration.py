@@ -277,7 +277,7 @@ Topic test from localhost:9094 with group id test_detections_report_success proc
             }
         }
         container.config.from_dict(local_settings)
-        init_first_db(insert=True)
+        init_first_db(insert=False)
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))

@@ -106,7 +106,7 @@ class TestExportStampClassificationsReport:
     def test_should_handle_error_when_parsing(self, exporter):
         exporter.set_slack_parameters({"channel_names": "test"})
         report_mock = mock.MagicMock()
-        report_mock.counts = "something wrong"
+        report_mock.databases = ["something wrong"]
         exporter.export_stamp_classifications_report(report_mock)
         assert exporter.view["status_code"] == 500
 
@@ -163,7 +163,7 @@ class TestParseStampClassificationsToString:
         text = exporter._parse_stamp_classifications_report_to_string(report)
         assert (
             text
-            == f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: test\n\t• Host: test\n\t:red_circle: No alerts today\n"""
+            == f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: test\n\t• Host: test\n\t:red_circle: No alerts today\n\t"""
         )
     
     def test_should_return_correct_text_success(self, exporter):
@@ -171,12 +171,12 @@ class TestParseStampClassificationsToString:
         database = StampDatabaseResponse(counts, "test", "test") 
         res = ""
         for r in counts:
-            res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n\t"
+            res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
         tz = tzlocal.get_localzone()
         today = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
         report = StampClassificationsReportResponseModel(databases = [database], success= True) 
         text = exporter._parse_stamp_classifications_report_to_string(report)
         assert (
             text
-            == f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: test\n\t• Host: test\n\t• Stamp classifier distribution: \n {res}"""
+            == f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: test\n\t• Host: test\n\t• Stamp classifier distribution: \n {res}\t"""
         )
