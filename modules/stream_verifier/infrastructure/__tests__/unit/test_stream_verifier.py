@@ -119,6 +119,17 @@ class TestStampClassificationsReport:
         )
         assert result.success
         assert result.value.success
+    
+    def test_success_with_check_fail(self, verifier):
+        databases = [
+            StampClassificationsDBRequest("test", ["test1", "test2"], "test")
+        ]
+        result = verifier("check_fail", "stamp_classifications_report").get_stamp_classifications_report(
+            StampClassificationsReportRequestModel(databases)
+        )
+        assert result.success
+        assert result.value.success
+
     def test_fail_with_psql_error(self, verifier):
         databases = [
             StampClassificationsDBRequest("test", "test", "test")
