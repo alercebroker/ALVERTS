@@ -319,7 +319,7 @@ class TestStampClassificationsReport:
         today = dt.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
         slack_client_mock.chat_postMessage.assert_called_once_with(
            channel="#test-bots",
-           text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t• Stamp classifier distribution: \n {res}\t""",
+           text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t• Objects observed last night: {1:>7} :night_with_stars:\n\t• New objects observed last night: {1:>7} :full_moon_with_face:\n\t• Stamp classifier distribution: \n {res}\t""",
         )
         assert response["status_code"] == 200
     

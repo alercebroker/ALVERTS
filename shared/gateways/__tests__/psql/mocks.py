@@ -15,9 +15,13 @@ class MockPsqlService:
         
         if self.report_type == "stamp_classifications_report":
             if self.state == "success":
-                return parser([("class1", 123), ("class2", 456)])
+                if parser:
+                    return parser([("class1", 123), ("class2", 456)])
+                return 1
             if self.state == "check_fail":
-                return parser([("class1", 123), ("class2", 456)])
+                if parser:
+                    return parser([("class1", 123), ("class2", 456)])
+                return 1
             if self.state == "external_error":
                 raise Exception("fail")
 

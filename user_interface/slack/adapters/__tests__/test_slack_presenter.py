@@ -156,7 +156,7 @@ class TestParseStampClassificationsToString:
         return SlackExporter(mock.MagicMock(), mock.MagicMock(), view={})
     
     def test_should_return_correct_text_with_no_alerts(self, exporter):
-        database = StampDatabaseResponse([], "test", "test") 
+        database = StampDatabaseResponse([], 0, 0, "test", "test") 
         tz = tzlocal.get_localzone()
         today = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
         report = StampClassificationsReportResponseModel(databases = [database], success= True)
@@ -168,7 +168,7 @@ class TestParseStampClassificationsToString:
     
     def test_should_return_correct_text_success(self, exporter):
         counts = [('class1', 10), ('class2', 20), ('class3', 30)]
-        database = StampDatabaseResponse(counts, "test", "test") 
+        database = StampDatabaseResponse(counts, 1, 1, "test", "test") 
         res = ""
         for r in counts:
             res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
@@ -178,5 +178,5 @@ class TestParseStampClassificationsToString:
         text = exporter._parse_stamp_classifications_report_to_string(report)
         assert (
             text
-            == f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: test\n\t• Host: test\n\t• Stamp classifier distribution: \n {res}\t"""
+            == f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: test\n\t• Host: test\n\t• Objects observed last night: {database.observed:>7} :night_with_stars:\n\t• New objects observed last night: {database.new_objects:>7} :full_moon_with_face:\n\t• Stamp classifier distribution: \n {res}\t"""
         )
