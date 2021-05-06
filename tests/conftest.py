@@ -6,7 +6,7 @@ import pytest
 import glob
 from fastavro import reader
 from db_plugins.db.sql import SQLConnection
-from db_plugins.db.sql.models import Detection, Object
+from db_plugins.db.sql.models import Detection, Object, Probability
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 EXAMPLES_PATH = os.path.abspath(os.path.join(FILE_PATH, "./examples"))
@@ -185,7 +185,7 @@ def init_db(insert: bool, config: dict):
     db.connect(config)
     db.create_db()
     if insert:
-        obj = Object(oid="ZTF19aaapkto")
+        obj = Object(oid="ZTF19aaapkto", firstmjd = 100000000)
         db.session.add(obj)
         det = Detection(
             candid=1000151433015015013,
@@ -204,6 +204,15 @@ def init_db(insert: bool, config: dict):
             step_id_corr="test",
         )
         db.session.add(det)
+        prob = Probability(
+            oid = "ZTF19aaapkto",
+            ranking = 1,
+            class_name = "class_1",
+            classifier_name = "stamp_classifier",
+            probability = 0.5,
+            classifier_version = "classifier_version_1",
+        )
+        db.session.add(prob)
         db.session.commit()
 
 

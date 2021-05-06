@@ -1,6 +1,8 @@
+from astropy.time import Time
+from datetime import datetime
 from .parsers import EntityParser
-from .request_models import LagReportRequestModel, DetectionsReportRequestModel
-from .response_models import LagReportResponseModel, DetectionsReportResponseModel
+from .request_models import LagReportRequestModel, DetectionsReportRequestModel, StampClassificationsReportRequestModel
+from .response_models import LagReportResponseModel, DetectionsReportResponseModel, StampClassificationsReportResponseModel
 from modules.stream_verifier.domain import IStreamVerifier
 from typing import List, Callable
 from shared import KafkaService, Result, PsqlService
@@ -77,6 +79,49 @@ class StreamVerifier(IStreamVerifier):
         return self._response_model_parser.to_detections_report_response_model(
             combined_reports.value
         )
+
+    def get_stamp_classifications_report(
+        self, request_model: StampClassificationsReportRequestModel
+    ) -> Result[StampClassificationsReportResponseModel, Exception]:
+        self.logger.info("Getting stamp classifications report")
+        reports = []
+        for database in request_model.databases:
+            try:
+                def parse_function(db_response):
+                    return self._entity_parser.to_stamp_classifications_report(
+                        db_response, database.db_url
+                    )
+                self.db_service.connect(database.db_url)
+                reports.append(self._get_stamp_classifier_inference(
+                            database.table_names, 
+                            database.mjd_name, 
+                            parse_function
+                            ))
+            except Exception as e:
+                err = f"Error with database {e}"
+                self.logger.error(err)
+                return Result.Fail(ExternalException(err))
+        
+        combined_reports = Result.combine(reports)
+        if not combined_reports.success:
+            return combined_reports
+        return self._response_model_parser.to_stamp_classifications_report_response_model(
+            combined_reports.value
+        )
+
+    def _get_stamp_classifier_inference(self, table_names: list, mjd_name: str, parser: Callable)-> list:
+        last_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        last_mjd = int(Time(last_day).mjd)
+        
+        statement = f"""
+                        SELECT {table_names[0]}.class_name, COUNT ({table_names[0]}.oid) FROM {table_names[0]}
+                        LEFT JOIN {table_names[1]} ON {table_names[0]}.oid = {table_names[1]}.oid WHERE {table_names[0]}.ranking = 1 
+                        AND {table_names[0]}.classifier_name = \'stamp_classifier\' 
+                        AND {table_names[1]}.{mjd_name} >= {last_mjd}
+                        GROUP BY {table_names[0]}.class_name
+                    """
+        
+        return self.db_service.execute(statement, parser)
 
     def _process_kafka_messages(self, kafka_response, identifiers):
         values = []

@@ -54,3 +54,25 @@ class TestToRequestModel:
         assert len(model.streams) == 1 and len(model.streams) == len(model.tables)
         assert model.streams[-1].bootstrap_servers == "test"
         assert model.tables[-1].db_url == "postgresql://test:test@test:5432/test"
+
+    def test_stamp_classifications_report(self, creator):
+        model = creator.to_request_model(
+            {
+                "database": [
+                    {   
+                        "host": "",
+                        "database": "",
+                        "user": "",
+                        "password": "",
+                        "port": "",
+                        "table_names": "",
+                        "mjd_name": ""
+                    }
+                ],
+            },
+            "stamp_classifications_report"
+        )
+        assert len(model.databases) == 1
+        assert model.databases[-1].mjd_name == ""
+        assert model.databases[-1].table_names == ""
+        

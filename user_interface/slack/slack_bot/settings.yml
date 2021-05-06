@@ -48,6 +48,15 @@ slack_bot:
         - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
           group_id: ${KAFKA_GROUP_ID_LC_CLASSIFIER}
           topic: ${KAFKA_TOPIC_FEATURE}
+    - name: stamp_classifications_report
+      database:
+        - host: ${DB_HOST_PROD}
+          database: ${DB_DATABASE_PROD}
+          user: ${DB_USER_PROD}
+          password: ${DB_PASSWORD_PROD}
+          port: ${DB_PORT_PROD}
+          table_names: [probability, object]
+          mjd_name: firstmjd
   schedule:
     - period: every_day
       report: lag_report
@@ -62,5 +71,11 @@ slack_bot:
         - test-bots
       times:
         - '16:00'
-        
-        
+    - period: every_day
+      report: stamp_classifications_report
+      channels:
+        - test-bots
+      times:
+        - '09:30'
+        - '11:30'
+        - '14:00'

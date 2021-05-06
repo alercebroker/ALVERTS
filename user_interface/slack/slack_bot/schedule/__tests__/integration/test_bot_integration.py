@@ -4,6 +4,8 @@ from user_interface.slack.slack_bot.schedule import bot
 from user_interface.slack.slack_bot.container import SlackContainer
 from typing import List, NewType, Tuple
 from dependency_injector import providers
+from datetime import datetime as dt
+import tzlocal
 import sys
 import datetime
 from tests.conftest import (
@@ -486,5 +488,257 @@ Topic test2 from localhost:9094 with group id test_detections_two_database_2_che
         container.slack_client.override(providers.Object(slack_client_mock))
         container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.detections_report()
+        slack_client_mock.chat_postMessage.assert_not_called()
+        assert response["status_code"] == 500
+
+class TestStampClassificationsReport:
+
+    def test_should_return_success_report_and_post_to_slack(
+        self, psql_service, init_first_db, bot_fixture
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+
+        local_settings = {
+            "slack_bot": {
+                "reports": [
+                    {
+                        "name": "stamp_classifications_report",
+                        "database": [
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5432",
+                                "table_names": ["probability", "object"],
+                                "mjd_name": "firstmjd",
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+        container.config.from_dict(local_settings)
+        init_first_db(insert=True)
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
+        response = scheduled_bot.stamp_classifications_report()
+        counts = [('class_1', 1)]
+        res = ""
+        for r in counts:
+           res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
+        tz = tzlocal.get_localzone()
+        today = dt.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
+        slack_client_mock.chat_postMessage.assert_called_with(
+            channel="#test-bots",
+            text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t• Stamp classifier distribution: \n {res}\t""",
+        )
+        assert response["status_code"] == 200
+
+    def test_should_return_no_alerts_report_and_post_to_slack(
+        self, psql_service, init_first_db, bot_fixture
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+
+        local_settings = {
+            "slack_bot": {
+                "reports": [
+                    {
+                        "name": "stamp_classifications_report",
+                        "database": [
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5432",
+                                "table_names": ["probability", "object"],
+                                "mjd_name": "firstmjd",
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+        container.config.from_dict(local_settings)
+        init_first_db(insert=False)
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
+        response = scheduled_bot.stamp_classifications_report()
+        tz = tzlocal.get_localzone()
+        today = dt.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
+        slack_client_mock.chat_postMessage.assert_called_with(
+            channel="#test-bots",
+            text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t:red_circle: No alerts today\n\t""",
+        )
+        assert response["status_code"] == 200
+    
+    def test_should_work_with_two_databases(
+        self,
+        psql_service,
+        second_database,
+        init_first_db,
+        init_second_db,
+        bot_fixture,
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+
+        local_settings = {
+            "slack_bot": {
+                "reports": [
+                    {
+                        "name": "stamp_classifications_report",
+                        "database": [
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5432",
+                                "table_names": ["probability", "object"],
+                                "mjd_name": "firstmjd",
+                            },
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5433",
+                                "table_names": ["probability", "object"],
+                                "mjd_name": "firstmjd",
+                            },
+                        ],
+                    }
+                ]
+            }
+        }
+        container.config.from_dict(local_settings)
+        init_first_db(insert=True)
+        init_second_db(insert=True)
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
+        response = scheduled_bot.stamp_classifications_report()
+        counts = [('class_1', 1)]
+        res = ""
+        for r in counts:
+           res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
+        tz = tzlocal.get_localzone()
+        today = dt.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
+        slack_client_mock.chat_postMessage.assert_called_with(
+            channel="#test-bots",
+            text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t• Stamp classifier distribution: \n {res}\t• Database: postgres\n\t• Host: localhost\n\t• Stamp classifier distribution: \n {res}\t""",
+        )
+        assert response["status_code"] == 200
+    
+    def test_should_work_with_two_databases_no_alerts(
+        self,
+        psql_service,
+        second_database,
+        init_first_db,
+        init_second_db,
+        bot_fixture,
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+
+        local_settings = {
+            "slack_bot": {
+                "reports": [
+                    {
+                        "name": "stamp_classifications_report",
+                        "database": [
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5432",
+                                "table_names": ["probability", "object"],
+                                "mjd_name": "firstmjd",
+                            },
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5433",
+                                "table_names": ["probability", "object"],
+                                "mjd_name": "firstmjd",
+                            },
+                        ],
+                    }
+                ]
+            }
+        }
+        container.config.from_dict(local_settings)
+        init_first_db(insert=False)
+        init_second_db(insert=False)
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
+        response = scheduled_bot.stamp_classifications_report()
+        tz = tzlocal.get_localzone()
+        today = dt.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
+        slack_client_mock.chat_postMessage.assert_called_with(
+            channel="#test-bots",
+            text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t:red_circle: No alerts today\n\t• Database: postgres\n\t• Host: localhost\n\t:red_circle: No alerts today\n\t""",
+        )
+        assert response["status_code"] == 200
+    
+    def test_should_work_with_two_databases_wrong_db(
+        self,
+        psql_service,
+        init_first_db,
+        bot_fixture,
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+
+        local_settings = {
+            "slack_bot": {
+                "reports": [
+                    {
+                        "name": "stamp_classifications_report",
+                        "database": [
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5432",
+                                "table_names": ["probability", "object"],
+                                "mjd_name": "firstmjd",
+                            },
+                            {
+                                "host": "localhost",
+                                "database": "postgres",
+                                "user": "postgres",
+                                "password": "postgres",
+                                "port": "5433",
+                                "table_names": ["probability", "object"],
+                                "mjd_name": "firstmjd",
+                            },
+                        ],
+                    }
+                ]
+            }
+        }
+        container.config.from_dict(local_settings)
+        init_first_db(insert=True)
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
+        response = scheduled_bot.stamp_classifications_report()
         slack_client_mock.chat_postMessage.assert_not_called()
         assert response["status_code"] == 500

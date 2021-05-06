@@ -28,3 +28,13 @@ class DetectionsReportRequestModel:
     def params(self):
         for i, stream in enumerate(self.streams):
             yield stream, self.tables[i]
+
+@dataclass
+class StampClassificationsDBRequest:
+    db_url: str
+    table_names: List[str]
+    mjd_name: str
+
+@dataclass
+class StampClassificationsReportRequestModel:
+    databases: List[StampClassificationsDBRequest] = field(default_factory=list)

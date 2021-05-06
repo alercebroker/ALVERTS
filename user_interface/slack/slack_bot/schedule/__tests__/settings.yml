@@ -35,6 +35,15 @@ slack_bot:
           group_id: xmatch
           topic_format: ztf_%s_test
           date_format: "%Y%m%d"
+    - name: stamp_classifications_report
+      database:
+        - host: localhost
+          database: postgres
+          user: postgres
+          password: postgres
+          port: 5432
+          table_names: [probability, object]
+          mjd_name: firstmjd
   schedule:
     - period: every_day
       report: lag_report
@@ -45,6 +54,12 @@ slack_bot:
         - '16:00'
     - period: every_day
       report: detections_report
+      channels:
+        - test-bots
+      times:
+        - '16:00'
+    - period: every_day
+      report: stamp_classifications_report
       channels:
         - test-bots
       times:

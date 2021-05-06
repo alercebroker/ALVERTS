@@ -9,9 +9,11 @@ from shared.error.exceptions import ClientException, ExternalException
 from dependency_injector import providers
 from shared.gateways.__tests__.kafka.mocks import MockKafkaService
 from shared.gateways.__tests__.psql.mocks import MockPsqlService
+from datetime import datetime as dt
+import datetime
 import sys
 import logging
-import datetime
+import tzlocal
 
 BOT_FIXTURE = NewType("BOT_FIXTURE", Tuple[bot.ScheduledBot, SlackContainer])
 
@@ -131,7 +133,7 @@ class TestStreamDetectionsReport:
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="success")
+            providers.Factory(MockPsqlService, state="success", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -157,7 +159,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 2
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="success")
+            providers.Factory(MockPsqlService, state="success", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.side_effect = Exception(
@@ -180,7 +182,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 2
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="check_fail")
+            providers.Factory(MockPsqlService, state="check_fail", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -206,7 +208,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 0
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="external_error")
+            providers.Factory(MockPsqlService, state="external_error", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -224,7 +226,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 0
             providers.Factory(MockKafkaService, state="external_error")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="success")
+            providers.Factory(MockPsqlService, state="success", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -243,7 +245,7 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 0
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="success")
+            providers.Factory(MockPsqlService, state="success", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -272,7 +274,7 @@ Topic ztf_{date1}_test_2 from localhost:9094 with group id correction{date2} pro
             providers.Factory(MockKafkaService, state="success")
         )
         container.db_service.override(
-            providers.Factory(MockPsqlService, state="success")
+            providers.Factory(MockPsqlService, state="success", report_type = "detections_report")
         )
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
@@ -296,3 +298,62 @@ Topic ztf_{date1}_test_2 from localhost:9094 with group id correction{date2} pro
 """,
         )
         assert response["status_code"] == 200
+
+class TestStampClassificationsReport:
+    def test_should_return_success_report_and_post_to_slack(self, bot_fixture):
+        
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+        container.db_service.override(
+           providers.Factory(MockPsqlService, state="success", report_type= "stamp_classifications_report")
+        )
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        response = scheduled_bot.stamp_classifications_report()
+        counts = [('class1', 123), ('class2', 456)]
+        res = ""
+        for r in counts:
+           res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
+        tz = tzlocal.get_localzone()
+        today = dt.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
+        slack_client_mock.chat_postMessage.assert_called_once_with(
+           channel="#test-bots",
+           text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t• Stamp classifier distribution: \n {res}\t""",
+        )
+        assert response["status_code"] == 200
+    
+    def test_should_return_success_report_and_fail_post_to_slack(
+        self, bot_fixture: BOT_FIXTURE
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+        container.db_service.override(
+            providers.Factory(MockPsqlService, state="success", report_type = "stamp_classifications_report")
+        )
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.side_effect = Exception(
+            "Failed to post message"
+        )
+        container.slack_client.override(providers.Object(slack_client_mock))
+        response = scheduled_bot.stamp_classifications_report()
+        assert response["status_code"] == 500
+        assert (
+            response["data"]
+            == "External Error: Error sending message: Failed to post message"
+        )
+
+    def test_should_return_db_error_report_and_not_post_to_slack(
+        self, bot_fixture: BOT_FIXTURE
+    ):
+        container = bot_fixture[1]
+        scheduled_bot = bot_fixture[0]
+        container.db_service.override(
+            providers.Factory(MockPsqlService, state="external_error", report_type= "stamp_classifications_report")
+        )
+        slack_client_mock = mock.MagicMock()
+        slack_client_mock.chat_postMessage.return_value.status_code = 200
+        container.slack_client.override(providers.Object(slack_client_mock))
+        response = scheduled_bot.stamp_classifications_report()
+        slack_client_mock.chat_postMessage.assert_not_called()
+        assert response["status_code"] == 500

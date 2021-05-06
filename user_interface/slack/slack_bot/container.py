@@ -12,6 +12,7 @@ from user_interface.slack.adapters.slack_request_model_creator import (
 )
 from shared.gateways.psql import PsqlService
 from modules.stream_verifier.use_cases.get_detections_report import GetDetectionsReport
+from modules.stream_verifier.use_cases.get_stamp_classifications_report import GetStampClassificationsReport
 
 
 class SlackContainer(containers.DeclarativeContainer):
@@ -52,6 +53,9 @@ class SlackContainer(containers.DeclarativeContainer):
             detections_report=providers.Factory(
                 GetDetectionsReport, verifier=stream_verifier
             ),
+            stamp_classifications_report = providers.Factory(
+                GetStampClassificationsReport, verifier = stream_verifier
+            )
         ),
         request_model_creator=providers.Factory(SlackRequestModelCreator),
     )
