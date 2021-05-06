@@ -169,11 +169,12 @@ class SlackExporter(ReportPresenter):
                 post_message += f"""• Database: {rep.database}\n\t• Host: {rep.host}\n\t:red_circle: No alerts today\n\t"""
         
             else:
-                res = ""
+                res = "" 
                 for r in rep.counts:
                     res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
-                post_message += f"""• Database: {rep.database}\n\t• Host: {rep.host}\n\t• Stamp classifier distribution: \n {res}\t"""
-        print(post_message)
+
+                post_message += f"""• Database: {rep.database}\n\t• Host: {rep.host}\n\t• Objects observed last night: {rep.observed:>7} :night_with_stars:\n\t• New objects observed last night: {rep.new_objects:>7} :full_moon_with_face:\n\t• Stamp classifier distribution: \n {res}\t"""
+        
         return post_message
         
     def post_to_slack(self, text: str):

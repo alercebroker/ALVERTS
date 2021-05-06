@@ -87,11 +87,16 @@ class StreamVerifier(IStreamVerifier):
         reports = []
         for database in request_model.databases:
             try:
+                self.db_service.connect(database.db_url)
+
+                observed, new_objects = self._get_observed_and_new_objects(database.table_names[1], database.mjd_name)
+
                 def parse_function(db_response):
                     return self._entity_parser.to_stamp_classifications_report(
-                        db_response, database.db_url
+                        db_response, observed, new_objects, database.db_url
                     )
-                self.db_service.connect(database.db_url)
+                
+
                 reports.append(self._get_stamp_classifier_inference(
                             database.table_names, 
                             database.mjd_name, 
@@ -108,6 +113,26 @@ class StreamVerifier(IStreamVerifier):
         return self._response_model_parser.to_stamp_classifications_report_response_model(
             combined_reports.value
         )
+    
+    def _get_observed_and_new_objects(self, table_name: str, mjd_name: str):
+        last_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        last_mjd = int(Time(last_day).mjd)
+
+        observed_statement = f""" 
+                                SELECT COUNT({table_name}.oid) FROM {table_name}
+                                WHERE {table_name}.lastmjd >= {last_mjd}
+                            """
+        observed = self.db_service.execute(observed_statement, None)
+        if isinstance(observed, list):
+            observed = observed[0][0]
+        new_objects_statement = f"""
+                                    SELECT COUNT({table_name}.oid) FROM {table_name}
+                                    WHERE {table_name}.{mjd_name} >= {last_mjd}
+                                """
+        new_objects = self.db_service.execute(new_objects_statement, None)
+        if isinstance(new_objects, list):
+            new_objects = new_objects[0][0]
+        return observed, new_objects
 
     def _get_stamp_classifier_inference(self, table_names: list, mjd_name: str, parser: Callable)-> list:
         last_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)

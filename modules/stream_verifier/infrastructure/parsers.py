@@ -42,16 +42,19 @@ class EntityParser:
             return Result.Fail(e)
     
     def to_stamp_classifications_report(
-        self, db_resp: List, db_url:str
+        self, db_resp: List, observed: int, new_objects:int, db_url:str
     ) -> Result[StampClassificationsReport, Exception]:
         
         try:
             host, db = self._get_host_and_database_from_url(db_url)
             report = StampClassificationsReport(
                 counts= db_resp,
+                observed=observed,
+                new_objects=new_objects,
                 host = host,
                 database= db
             )
+            print(report)
             return Result.Ok(report)
         except Exception as e:
             return Result.Fail(e)
@@ -142,6 +145,8 @@ class ResponseModelParser:
                 databases.append(
                     StampDatabaseResponse(
                         report.counts,
+                        report.observed,
+                        report.new_objects,
                         report.host,
                         report.database
                     )

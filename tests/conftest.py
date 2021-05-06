@@ -185,7 +185,7 @@ def init_db(insert: bool, config: dict):
     db.connect(config)
     db.create_db()
     if insert:
-        obj = Object(oid="ZTF19aaapkto", firstmjd = 100000000)
+        obj = Object(oid="ZTF19aaapkto", firstmjd = 100000000, lastmjd = 100000000)
         db.session.add(obj)
         det = Detection(
             candid=1000151433015015013,

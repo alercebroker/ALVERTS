@@ -34,6 +34,8 @@ class DetectionsReportResponseModel:
 @dataclass
 class StampDatabaseResponse:
     counts: List[Tuple[str, int]]
+    observed: int
+    new_objects: int
     host: str
     database: str
 
