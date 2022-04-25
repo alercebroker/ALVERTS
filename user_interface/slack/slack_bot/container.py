@@ -12,10 +12,7 @@ from user_interface.slack.adapters.slack_request_model_creator import (
 )
 from shared.gateways.psql import PsqlService
 from modules.stream_verifier.use_cases.get_detections_report import GetDetectionsReport
-from user_interface.slack.slack_bot.utils.streams import (
-    get_kafka_streams_detections_report,
-    get_kafka_streams_lag_report,
-)
+from modules.stream_verifier.use_cases.get_stamp_classifications_report import GetStampClassificationsReport
 
 
 class SlackContainer(containers.DeclarativeContainer):
@@ -28,9 +25,11 @@ class SlackContainer(containers.DeclarativeContainer):
     )
     db_service = providers.Singleton(PsqlService)
 
-    slack_client = providers.Singleton(WebClient, token=config.slack.SLACK_BOT_TOKEN)
+    slack_client = providers.Singleton(
+        WebClient, token=config.slack_bot.slack_credentials.token
+    )
     slack_signature_verifier = providers.Singleton(
-        SignatureVerifier, signing_secret=config.slack.SLACK_SIGNATURE
+        SignatureVerifier, signing_secret=config.slack_bot.slack_credentials.signature
     )
 
     # Main service
@@ -54,13 +53,9 @@ class SlackContainer(containers.DeclarativeContainer):
             detections_report=providers.Factory(
                 GetDetectionsReport, verifier=stream_verifier
             ),
+            stamp_classifications_report = providers.Factory(
+                GetStampClassificationsReport, verifier = stream_verifier
+            )
         ),
         request_model_creator=providers.Factory(SlackRequestModelCreator),
-    )
-
-    stream_params_creator = providers.Dict(
-        stream_params_lag_report=providers.Callable(get_kafka_streams_lag_report),
-        stream_params_detections_report=providers.Callable(
-            get_kafka_streams_detections_report
-        ),
     )

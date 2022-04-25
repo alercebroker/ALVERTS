@@ -6,17 +6,17 @@ import pytest
 import glob
 from fastavro import reader
 from db_plugins.db.sql import SQLConnection
-from db_plugins.db.sql.models import Detection, Object
+from db_plugins.db.sql.models import Detection, Object, Probability
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
-EXAMPLES_PATH = os.path.abspath(os.path.join(FILE_PATH, "./examples/avro_test"))
+EXAMPLES_PATH = os.path.abspath(os.path.join(FILE_PATH, "./examples"))
 
 
 @pytest.fixture(scope="session")
 def docker_compose_file(pytestconfig):
     return os.path.join(
         str(pytestconfig.rootdir),
-        "user_interface/slack/slack_bot/commands/__tests__/integration",
+        "tests",
         "docker-compose.yml",
     )
 
@@ -46,13 +46,47 @@ def is_responsive_kafka(url):
 @pytest.fixture(scope="session")
 def kafka_service(docker_ip, docker_services):
     """Ensure that Kafka service is up and responsive."""
-    topics = ["test", "test2"]
     # `port_for` takes a container port and returns the corresponding host port
     port = docker_services.port_for("kafka", 9094)
     server = "{}:{}".format(docker_ip, port)
     docker_services.wait_until_responsive(
-        timeout=30.0, pause=0.1, check=lambda: is_responsive_kafka(server)
+        timeout=60.0, pause=0.1, check=lambda: is_responsive_kafka(server)
     )
+
+    return server
+
+
+@pytest.fixture
+def produce_fake_messages():
+    msgs = []
+    topics = ["test"]
+    for i in range(10):
+        msgs.append(f"test{i}")
+    config = {"bootstrap.servers": "localhost:9094"}
+    producer = Producer(config)
+    try:
+        for topic in topics:
+            for data in msgs:
+                producer.produce(topic, value=data)
+                producer.flush(30)
+            print(f"produced to {topic}")
+    except Exception as e:
+        print(f"failed to produce to topic {topic}: {e}")
+    yield "produced"
+    a = AdminClient(config)
+    fs = a.delete_topics(topics, operation_timeout=30)
+    # Wait for operation to finish.
+    for topic, f in fs.items():
+        try:
+            f.result()  # The result itself is None
+            print("Topic {} deleted".format(topic))
+        except Exception as e:
+            print("Failed to delete topic {}: {}".format(topic, e))
+
+
+@pytest.fixture
+def produce_from_avro():
+    topics = ["test", "test2"]
     config = {"bootstrap.servers": "localhost:9094"}
     producer = Producer(config)
     try:
@@ -63,7 +97,16 @@ def kafka_service(docker_ip, docker_services):
             print(f"produced to {topic}")
     except Exception as e:
         print(f"failed to produce to topic {topic}: {e}")
-    return server
+    yield "produced"
+    a = AdminClient(config)
+    fs = a.delete_topics(topics, operation_timeout=30)
+    # Wait for operation to finish.
+    for topic, f in fs.items():
+        try:
+            f.result()  # The result itself is None
+            print("Topic {} deleted".format(topic))
+        except Exception as e:
+            print("Failed to delete topic {}: {}".format(topic, e))
 
 
 @pytest.fixture
@@ -142,7 +185,7 @@ def init_db(insert: bool, config: dict):
     db.connect(config)
     db.create_db()
     if insert:
-        obj = Object(oid="ZTF19aaapkto")
+        obj = Object(oid="ZTF19aaapkto", firstmjd = 100000000, lastmjd = 100000000)
         db.session.add(obj)
         det = Detection(
             candid=1000151433015015013,
@@ -161,6 +204,15 @@ def init_db(insert: bool, config: dict):
             step_id_corr="test",
         )
         db.session.add(det)
+        prob = Probability(
+            oid = "ZTF19aaapkto",
+            ranking = 1,
+            class_name = "class_1",
+            classifier_name = "stamp_classifier",
+            probability = 0.5,
+            classifier_version = "classifier_version_1",
+        )
+        db.session.add(prob)
         db.session.commit()
 
 

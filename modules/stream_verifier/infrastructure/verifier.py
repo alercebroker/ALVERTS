@@ -1,6 +1,8 @@
+from astropy.time import Time
+from datetime import datetime
 from .parsers import EntityParser
-from .request_models import LagReportRequestModel, DetectionsReportRequestModel
-from .response_models import LagReportResponseModel, DetectionsReportResponseModel
+from .request_models import LagReportRequestModel, DetectionsReportRequestModel, StampClassificationsReportRequestModel
+from .response_models import LagReportResponseModel, DetectionsReportResponseModel, StampClassificationsReportResponseModel
 from modules.stream_verifier.domain import IStreamVerifier
 from typing import List, Callable
 from shared import KafkaService, Result, PsqlService
@@ -35,7 +37,7 @@ class StreamVerifier(IStreamVerifier):
             )
         combined_reports = Result.combine(reports)
         if not combined_reports.success:
-            self.logger.error("Failed to get lag report")
+            self.logger.error("Failed to get lag report", exc_info=True)
             return combined_reports
         response_model = self._response_model_parser.to_lag_report_response_model(
             combined_reports.value
@@ -57,25 +59,94 @@ class StreamVerifier(IStreamVerifier):
                         )
 
                     self.db_service.connect(table.db_url)
-
                     values = self._process_kafka_messages(
-                        kafka_response, table.identifiers
+                        kafka_response, stream.identifiers
                     )
                     reports.append(
-                        self._check_difference(values, table.table_name, parse_function)
+                        self._check_difference(
+                            values, table.table_name, table.id_field, parse_function
+                        )
                     )
 
                 self.kafka_service.consume_all(stream, process_function)
             except Exception as e:
-                err = f"Error with kafka message or database {e}"
-                self.logger.error(err)
-                return Result.Fail(ExternalException(err))
+                err = ExternalException(f"Error with kafka message or database {e}")
+                self.logger.error(err, exc_info=True)
+                return Result.Fail(err)
         combined_reports = Result.combine(reports)
         if not combined_reports.success:
             return combined_reports
         return self._response_model_parser.to_detections_report_response_model(
             combined_reports.value
         )
+
+    def get_stamp_classifications_report(
+        self, request_model: StampClassificationsReportRequestModel
+    ) -> Result[StampClassificationsReportResponseModel, Exception]:
+        self.logger.info("Getting stamp classifications report")
+        reports = []
+        for database in request_model.databases:
+            try:
+                self.db_service.connect(database.db_url)
+
+                observed, new_objects = self._get_observed_and_new_objects(database.table_names[1], database.mjd_name)
+
+                def parse_function(db_response):
+                    return self._entity_parser.to_stamp_classifications_report(
+                        db_response, observed, new_objects, database.db_url
+                    )
+                
+
+                reports.append(self._get_stamp_classifier_inference(
+                            database.table_names, 
+                            database.mjd_name, 
+                            parse_function
+                            ))
+            except Exception as e:
+                err = f"Error with database {e}"
+                self.logger.error(err)
+                return Result.Fail(ExternalException(err))
+        
+        combined_reports = Result.combine(reports)
+        if not combined_reports.success:
+            return combined_reports
+        return self._response_model_parser.to_stamp_classifications_report_response_model(
+            combined_reports.value
+        )
+    
+    def _get_observed_and_new_objects(self, table_name: str, mjd_name: str):
+        last_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        last_mjd = int(Time(last_day).mjd)
+
+        observed_statement = f""" 
+                                SELECT COUNT({table_name}.oid) FROM {table_name}
+                                WHERE {table_name}.lastmjd >= {last_mjd}
+                            """
+        observed = self.db_service.execute(observed_statement, None)
+        if isinstance(observed, list):
+            observed = observed[0][0]
+        new_objects_statement = f"""
+                                    SELECT COUNT({table_name}.oid) FROM {table_name}
+                                    WHERE {table_name}.{mjd_name} >= {last_mjd}
+                                """
+        new_objects = self.db_service.execute(new_objects_statement, None)
+        if isinstance(new_objects, list):
+            new_objects = new_objects[0][0]
+        return observed, new_objects
+
+    def _get_stamp_classifier_inference(self, table_names: list, mjd_name: str, parser: Callable)-> list:
+        last_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        last_mjd = int(Time(last_day).mjd)
+        
+        statement = f"""
+                        SELECT {table_names[0]}.class_name, COUNT ({table_names[0]}.oid) FROM {table_names[0]}
+                        LEFT JOIN {table_names[1]} ON {table_names[0]}.oid = {table_names[1]}.oid WHERE {table_names[0]}.ranking = 1 
+                        AND {table_names[0]}.classifier_name = \'stamp_classifier\' 
+                        AND {table_names[1]}.{mjd_name} >= {last_mjd}
+                        GROUP BY {table_names[0]}.class_name
+                    """
+        
+        return self.db_service.execute(statement, parser)
 
     def _process_kafka_messages(self, kafka_response, identifiers):
         values = []
@@ -88,17 +159,21 @@ class StreamVerifier(IStreamVerifier):
 
         return values
 
-    def _check_difference(self, values: list, table: str, parser: Callable) -> list:
+    def _check_difference(
+        self, values: list, table: str, id_field: str, parser: Callable
+    ) -> list:
         if len(values) == 0:
-            err = "No values passed, the topic is empty or something went wrong consuming."
-            self.logger.error(err)
-            return Result.Fail(ValueError(err))
+            err = ValueError(
+                "No values passed, the topic is empty or something went wrong consuming."
+            )
+            self.logger.error(err, exc_info=True)
+            return Result.Fail(err)
 
         str_values = ",\n".join([f"('{val[0]}', {val[1]})" for val in values])
-        QUERY_VALUES = self._create_base_query(table) % str_values
+        QUERY_VALUES = self._create_base_query(table, id_field, str_values)
         return self.db_service.execute(QUERY_VALUES, parser)
 
-    def _create_base_query(self, table: str) -> str:
+    def _create_base_query(self, table: str, id_field: str, values: str) -> str:
         """Create base query statement for alert ingested on DB.
 
         Parameters
@@ -117,7 +192,7 @@ class StreamVerifier(IStreamVerifier):
                         VALUES %s
                     )
                     SELECT batch_candids.oid, batch_candids.candid FROM batch_candids
-                    LEFT JOIN {table} AS d ON batch_candids.candid = d.candid
-                    WHERE d.candid IS NULL
+                    LEFT JOIN {table} AS d ON batch_candids.candid = d.{id_field}
+                    WHERE d.{id_field} IS NULL
                 """
-        return QUERY
+        return QUERY % values

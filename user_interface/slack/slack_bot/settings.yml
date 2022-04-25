@@ -1,0 +1,81 @@
+---
+slack_bot:
+  stage: ${SLACK_BOT_STAGE}
+  log_level: ${SLACK_BOT_LOG_LEVEL}
+  slack_credentials:
+    token: ${SLACK_BOT_TOKEN}
+    signature: ${SLACK_BOT_SIGNATURE}
+  reports:
+    - name: detections_report
+      database:
+        # Add as many databases as you want to check
+        # Keep in mind: One database entry per topic
+        # For kafka topics use the streams field below
+        - host: ${DB_HOST_PROD}
+          database: ${DB_DATABASE_PROD}
+          user: ${DB_USER_PROD}
+          password: ${DB_PASSWORD_PROD}
+          port: ${DB_PORT_PROD}
+          detections_table_name: ${DETECTIONS_TABLE_PROD}
+          detections_id_field: ${DETECTIONS_ID_FIELD_PROD}
+      streams:
+        # Add as many kafka servers and topics you want to check
+        # Keep in mind: One stream entry per topic
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id_format: ${KAFKA_GROUP_ID_FORMAT}
+          topic_format: ${KAFKA_TOPIC_FORMAT}
+          date_format: ${KAFKA_SOURCE_DATE_FORMAT}
+          identifiers:
+            - oid
+            - candid
+          batch_size: 500
+    - name: lag_report
+      streams:
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id: ${KAFKA_GROUP_ID_XMATCH}
+          topic_format: ${KAFKA_SOURCE_TOPIC_FORMAT}
+          date_format: ${KAFKA_SOURCE_DATE_FORMAT}
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id: ${KAFKA_GROUP_ID_STAMP}
+          topic_format: ${KAFKA_SOURCE_TOPIC_FORMAT}
+          date_format: ${KAFKA_SOURCE_DATE_FORMAT}
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id: ${KAFKA_GROUP_ID_CORRECTION}
+          topic: ${KAFKA_TOPIC_XMATCH}
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id: ${KAFKA_GROUP_ID_FEATURE}
+          topic: ${KAFKA_TOPIC_CORRECTION}
+        - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
+          group_id: ${KAFKA_GROUP_ID_LC_CLASSIFIER}
+          topic: ${KAFKA_TOPIC_FEATURE}
+    - name: stamp_classifications_report
+      database:
+        - host: ${DB_HOST_PROD}
+          database: ${DB_DATABASE_PROD}
+          user: ${DB_USER_PROD}
+          password: ${DB_PASSWORD_PROD}
+          port: ${DB_PORT_PROD}
+          table_names: [probability, object]
+          mjd_name: firstmjd
+  schedule:
+    - period: every_day
+      report: lag_report
+      channels:
+        - test-bots
+      times:
+        - '12:00'
+        - '16:00'
+    - period: every_day
+      report: detections_report
+      channels:
+        - test-bots
+      times:
+        - '16:00'
+    - period: every_day
+      report: stamp_classifications_report
+      channels:
+        - test-bots
+      times:
+        - '09:30'
+        - '11:30'
+        - '14:00'

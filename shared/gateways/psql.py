@@ -35,6 +35,8 @@ class PsqlService:
     def execute(self, sql: str, parser: Callable):
         with self.session() as sess:
             res = sess.execute(sql).fetchall()
+            if parser is None:
+                return res
             return parser(res)
 
     @contextmanager

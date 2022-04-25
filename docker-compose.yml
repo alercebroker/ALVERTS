@@ -6,11 +6,3 @@ services:
         dockerfile: user_interface/slack/slack_bot/Dockerfile.schedule
       env_file:
         - .env
-    commands:
-      build:
-        context: .
-        dockerfile: user_interface/slack/slack_bot/Dockerfile.commands
-      ports:
-        - 8071:8071
-      env_file:
-        - .env

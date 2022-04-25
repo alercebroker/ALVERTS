@@ -1,0 +1,386 @@
+#+TITLE: ALVERTS: ALeRCE Verification and ReporT System
+#+TEXT: Perform checks and generate reports to be sent on multiple output options, like slack, mail, etc.
+#+OPTIONS: toc:2
+
+* ALVERTS
+ALeRCE Verification and ReporT System is an internal software for ALeRCE that aims to generate report messages about the execution of various processes, like the processing pipeline or maybe some usage statistics in the future.
+It works by performing an arbitrary check and generating a response to be sent to different output channels, like slack, email, file system, or any other. The design is modular and reports are supposed to be published in many formats without altering the logic of the check itself.
+
+* Usage
+** Reports
+**** Lag Report
+Shows if there is unprocessed messages inside a Kafka topic.
+**** Detections Report
+Shows if there is difference between number of alert ~candid~ inside a Kafka topic and the PSQL database.
+**** Stamp Classifications Report
+Shows the distribution of classes of classified alerts by the stamp classifier in one night.
+** Slack Bot
+Slack Bot is a part of ALVERTS that generates reports and sends them to a Slack channel. It is deployed using Docker Compose and can be configured in YAML to send reports every day at specific times.
+*** Configuration
+The main configuration file is located in ~user_interface/slack/slack_bot/settings.yml~
+
+The following is a description of each available option.
+**** slack_bot
+- Description: The complete slack bot configuration.
+- Required: *Yes*
+***** stage
+- Description: Stage of the bot. One of: "test", "develop", "staging", "production"
+- Required: No
+- Type: dict
+***** log_level
+- Description: Logging level. One of: "debug", "info", "error", "warning", "critical"
+- Default: info
+- Required: No
+- Type: str
+***** slack_credentials
+- Description: credentials for authenticating slack client
+- Required: *Yes*
+- Type: dict
+****** token
+- Description: authentication token
+- Required: *Yes*
+- Type: str
+****** signature
+- Description: authentication signature
+- Required: *Yes*
+- Type: str
+***** reports
+- Description: configure one or many report to be generated
+- Required: *Yes*
+- Type: array<[[report_item][report_item]]>
+****** report_item
+- Description: configure one report
+- Required: *Yes* (at least one)
+- Type: dict
+******* name
+- Description: The name of the report. One of "detections_report", "lag_report", or "stamp_classifications_report"
+- Required: *Yes*
+- Type: str
+******* database
+- Description: configure one or many database connections and report specific db parameters
+- Required: *Condition*
+  - ~if name == detections_report~
+  - ~if name == stamp_classifications_report~
+- Type: array<[[database_item][database_item]]>
+******** database_item
+- Description: configure one database connection
+- Required: *Condition*
+  - ~if name == detections_report~
+  - ~if name == stamp_classifications_report~
+- Type: dict
+********* host
+- Description: host name or ip
+- Required: *Yes*
+- Type: str
+********* database
+- Description: database name
+- Required: *Yes*
+- Type: str
+********* user
+- Description: user name
+- Required: *Yes*
+- Type: str
+********* password
+- Description: db password
+- Required: *Yes*
+- Type: str
+********* port
+- Description: db port
+- Required: *Yes*
+- Type: str
+********* detections_table_name
+- Description: name of the table that has detections
+- Required: *Condition*
+  - ~if name == detections_report~
+- Type: str
+********* detections_id_field
+- Description: name of the candidate id field in table that has detections
+- Required: *Condition*
+  - ~if name == detections_report~
+- Type: str
+********* probability_table_name
+- Description: name of the table that has classifications
+- Required: *Condition*
+  - ~if name == stamp_classifications_report~
+- Type: str
+********* mjd_field_name
+- Description: name of the date field in the table that has classifications
+- Required: *Condition*
+  - ~if name == stamp_classifications_report~
+- Type: str
+******* streams
+- Description: configure one or many kafka topics
+- Required: *Yes/Conditions*
+  - ~if name == detections_report~ there should be as many stream entries as database entries
+  - ~if name == lag_report~ there should be at least one entry
+- Type: array<[[*stream_item][stream_item]]>
+******** stream_item
+- Description: configure one kafka topic connection
+- Required: *Condition*
+  - ~if name == detections_report~
+  - ~if name == lag_report~
+- Type: dict
+********* bootstrap_servers
+- Description: kafka host server(s), comma separated
+- Required: *Yes*
+- Type: str
+********* group_id_format
+- Description: kafka consumer group id format. Should have a python string formatter syntax with % sign.
+  Example: "consumer_group_id_%s" where %s will be replaced by a date
+- Required: *Condition*
+  - ~if not group_id~
+- Type: str
+********* group_id
+- Description: kafka consumer group id
+- Required: *Condition*
+  - ~if not group_id_format~
+- Type: str
+********* topic
+- Description: kafka topic
+- Required: *Condition*
+  - ~if not topic_format~
+- Type: str
+********* topic_format
+- Description: kafka topic format used for topics that change name every day. Should have a python string formatter syntax with % sign.
+  Example: "ztf_%s_programid1" where %s will be replaced by a date
+- Required: *Condition*
+  - ~if not topic~
+- Type: str
+********* identifiers
+- Description: detections report specific option. Defines the identifier of object id and candid values
+- Required: *Condition*
+  - ~if name == detections_report~
+- Type: array<str>
+********* batch_size
+- Description: detections report specific option. Defines the batch size for consuming from kafka topic
+- Required: *Condition*
+  - ~if name == detections_report~
+- Type: str
+***** schedule
+- Description: configure the bot schedule. One entry per report
+- Required: *Yes*
+- Type: array<schedule_item>
+****** schedule_item
+- Description: configure one report bot schedule
+- Required: *Yes*
+- Type: dict
+******* report
+- Description: report name identifier. One of "lag_report", "detections_report", "stamp_classifications_report"
+- Required: *Yes*
+- Type: dict
+******* period
+- Description: periodicity of the report generation. Right now, only supported period is "every_day"
+- Required: *Yes*
+- Type: dict
+******* channels
+- Description: List of slack channels to post to
+- Required: *Yes*
+- Type: array<str>
+******* times
+- Description: Hours of day at which the report is generated. Format can be "HH:MM" and even "HH:MM:SS"
+- Required: *Yes*
+- Type: array<str>
+*** Deployment
+To deploy the slack bot you can use the docker-compose file located in the root directory. Simply execute the following:
+#+begin_src sh
+docker-compose up -d scheduled
+#+end_src
+
+* Dev
+** Clean Architecture
+The code follows the [[https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html][Clean Architecture]] pattern. There are 3 main layers that we can identify and are further explained in the next sections: Domain, Application and User Interface.
+*** Directory Structure
+- modules: Where the logic for getting reports is located
+  + stream_verifier: The main verifier that contains logic primarily for performing checks on the stream pipeline
+    - domain: location of report entities and verifier interfaces
+      + infrastructure: location of all the report generating logic (parsers, request/response models, verifier)
+        - use_cases: use case interactors
+- shared: Where shared modules are located. Stuff like error classes, gateways, other generic shared code
+- user_interface: Location for the output channels for the reports
+  + adapters: generic adapters (controllers, presenters)
+    - slack: Logic for exporting reports to slack messages
+      + adapters: slack specific adapters
+        - slack_bot: main code for the slack bot interface
+          + schedule: The bot that sends reports daily
+*** UML Class Diagram
+- https://drive.google.com/file/d/18h3nmvXs083I2EO5mKGeeaoFtyVsUKgQ/view?usp=sharing
+*** Elements of ALVERTS
+**** Reports
+This is the main entity. Reports have attributes specific to each report and a way of checking the status of the report.
+Example report:
+#+begin_src python
+@dataclass
+class LagReport:
+    bootstrap_servers: str
+    topic: str
+    group_id: str
+    lags: List[int]
+
+    def total_lag(self):
+        return sum(self.lags)
+
+    def check_success(self):
+        return self.total_lag() == 0
+#+end_src
+
+**** Verifiers
+Verifiers contain logic that generates a report. A verifier should probably have a gateway service to fetch data from an external source, then use a parser to create the ~Report~, and finally create a ~Response Model~ with the information of the report and status check.
+The overall logic of a verifier goes like: ~Request Model -> Gateway -> Report -> Response Model~
+**** Gateways
+Gateways are classses that provide connection to external services like a database or kafka server. They usually take a request model and use a provided parser to generate reports.
+**** Result
+Result is a class that helps to handle success and error states. Reports and Response models should be wrapped in a Result class.
+**** Parsers
+Parsers are classes or methods that transform data either from external service to a ~Report~ entity or from a ~Report~ to a ~Response Model~
+**** Request Models
+Request model contains data understandable by a use case. Usually the ~Controller~ puts data from user input inside a request model and pass it to a use case.
+**** Response Models
+Response models are objects that contain the data from a ~Report~ that is understandable by a ~Presenter~
+**** Interactors
+Use case interactors are classes or methods that trigger the generation of a report. ALVERT's design uses interactors calling them from controllers and providing presenter callbacks that will use data returned from the ~Verifier~.
+
+The interactors use the execute or command pattern. The generic interface is defined here:
+#+begin_src python
+class UseCase(metaclass=abc.ABCMeta):
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        return hasattr(subclass, "execute") and callable(subclass.execute)
+
+    @abc.abstractmethod
+    def execute(self, request, callbacks: dict):
+        raise NotImplementedError
+#+end_src
+**** Interface Adapters
+***** Controllers
+Controller is in charge of receiving user input and dispatching a report generation. The interface is simple, there is a ~get_report~ method that takes parameters from the user and a report name to trigger the report generation.
+
+There is a utility class asociated with the controller called the ~RequestModelCreator~ that should convert the data from the user to a request model used by the verifier.
+#+begin_src python
+class RequestModelCreator(metaclass=abc.ABCMeta):
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        return hasattr(subclass, "to_request_model") and callable(
+            subclass.to_request_model
+        )
+
+    @abc.abstractmethod
+    def to_request_model(self, request, report):
+        raise NotImplementedError
+#+end_src
+Each type of input should implement this interface. For example, there is a ~SlackRequestModelCreator~ for slack bot inputs. If in the future some other input is required, like a REST API, one would need to implement a RequestModelCreator that parsed API requests to some request model.
+***** Presenters
+Presenters are in charge of taking the response model generated from the ~Verifier~ and sending it to the output channel. For example, there is a Slack presenter that takes these models and converts them to string format. Then it sends a POST request using the Slack Python client.
+
+Presenters should also handle errors, since we are using the Result class pattern, errors are not raised during the execution and instead we check the state of a Result and execute the corresponding action.
+
+The generic interface for presenters is defined here:
+#+begin_src python
+class ReportPresenter(metaclass=abc.ABCMeta):
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        return (
+            hasattr(subclass, "export_lag_report")
+            and callable(subclass.export_lag_report)
+            and hasattr(subclass, "export_detections_report")
+            and callable(subclass.export_detections_report)
+            and hasattr(subclass, "handle_client_error")
+            and callable(subclass.handle_client_error)
+            and hasattr(subclass, "handle_external_error")
+            and callable(subclass.handle_external_error)
+            and hasattr(subclass, "handle_application_error")
+            and callable(subclass.handle_application_error)
+            and hasattr(subclass, "handle_request_error")
+            and callable(subclass.handle_application_error)
+        )
+
+    @abc.abstractmethod
+    def export_lag_report(self, report):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def export_detections_report(self, report):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def handle_client_error(self, error):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def handle_external_error(self, error):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def handle_application_error(self, error):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def handle_request_error(self, error):
+        raise NotImplementedError
+#+end_src
+** Use ALVERTS in a new application
+ALVERTS uses [[https://python-dependency-injector.ets-labs.org/][dependency injector]] to handle class dependenecies and apply the dependency injection principle. If you want to integrate ALVERTS's reports in a new environment you need to create a new container with the desired components and use it to inject ALVERTS in the application.
+
+Take a look at the slack container as an example:
+#+begin_src python
+class SlackContainer(containers.DeclarativeContainer):
+    config = providers.Configuration()
+
+    # gateways
+    consumer_factory = providers.Factory(Consumer)
+    kafka_service = providers.Singleton(
+        KafkaService, consumer_creator=consumer_factory.provider
+    )
+    db_service = providers.Singleton(PsqlService)
+
+    slack_client = providers.Singleton(
+        WebClient, token=config.slack_bot.slack_credentials.token
+    )
+    slack_signature_verifier = providers.Singleton(
+        SignatureVerifier, signing_secret=config.slack_bot.slack_credentials.signature
+    )
+
+    # Main service
+    stream_verifier = providers.Singleton(
+        StreamVerifier,
+        kafka_service=kafka_service,
+        db_service=db_service,
+    )
+
+    # User interface
+    slack_exporter = providers.Factory(
+        SlackExporter,
+        client=slack_client,
+        signature_verifier=slack_signature_verifier,
+    )
+    slack_controller = providers.Factory(
+        ReportController,
+        presenter=slack_exporter,
+        use_cases=providers.Dict(
+            lag_report=providers.Factory(GetLagReport, verifier=stream_verifier),
+            detections_report=providers.Factory(
+                GetDetectionsReport, verifier=stream_verifier
+            ),
+        ),
+        request_model_creator=providers.Factory(SlackRequestModelCreator),
+    )
+#+end_src
+
+With this container you can inject the dependencies in an application like the Slack Bot like this:
+#+begin_src python
+class ScheduledBot:
+    @inject
+    def lag_report(
+        self,
+        controller: ReportController = Provide[SlackContainer.slack_controller],
+        params: dict = Provide[SlackContainer.config.slack_bot],
+    ):
+        ...  # report code here (filter params, set request data, call controller)
+
+    @inject
+    def detections_report(
+        self,
+        controller: ReportController = Provide[SlackContainer.slack_controller],
+        params: dict = Provide[SlackContainer.config.slack_bot],
+    ):
+        ...  # report code here (filter params, set request data, call controller)
+#+end_src
