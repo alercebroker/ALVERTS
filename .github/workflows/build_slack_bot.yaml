@@ -23,7 +23,7 @@ jobs:
     - name: Prepare
       id: prep
       run: |
-        DOCKER_IMAGE=ghcr.io/alercebroker/sorting_hat_step
+        DOCKER_IMAGE=ghcr.io/alercebroker/alverts
         SHA=$(git rev-parse --short HEAD)
         VERSION=rc-$SHA
         if [[ $GITHUB_REF == refs/tags/* ]]; then
