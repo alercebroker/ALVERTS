@@ -40,10 +40,6 @@ The following is a description of each available option.
 - Description: authentication token
 - Required: *Yes*
 - Type: str
-****** signature
-- Description: authentication signature
-- Required: *Yes*
-- Type: str
 ***** reports
 - Description: configure one or many report to be generated
 - Required: *Yes*
@@ -335,9 +331,6 @@ class SlackContainer(containers.DeclarativeContainer):
     slack_client = providers.Singleton(
         WebClient, token=config.slack_bot.slack_credentials.token
     )
-    slack_signature_verifier = providers.Singleton(
-        SignatureVerifier, signing_secret=config.slack_bot.slack_credentials.signature
-    )
 
     # Main service
     stream_verifier = providers.Singleton(
@@ -350,7 +343,6 @@ class SlackContainer(containers.DeclarativeContainer):
     slack_exporter = providers.Factory(
         SlackExporter,
         client=slack_client,
-        signature_verifier=slack_signature_verifier,
     )
     slack_controller = providers.Factory(
         ReportController,

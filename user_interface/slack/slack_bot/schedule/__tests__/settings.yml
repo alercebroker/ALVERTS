@@ -4,7 +4,6 @@ slack_bot:
   log_level: develop
   slack_credentials:
     token: test_token
-    signature: test_signature
   reports:
     - name: detections_report
       database:

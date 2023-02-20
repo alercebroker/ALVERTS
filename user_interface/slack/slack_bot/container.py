@@ -3,7 +3,6 @@ from confluent_kafka import Consumer
 from shared.gateways.kafka import KafkaService
 from modules.stream_verifier.infrastructure.verifier import StreamVerifier
 from slack.web.client import WebClient
-from slack.signature.verifier import SignatureVerifier
 from user_interface.slack.adapters.slack_presenter import SlackExporter
 from modules.stream_verifier.use_cases.get_lag_report import GetLagReport
 from user_interface.adapters.controller import ReportController
@@ -12,7 +11,9 @@ from user_interface.slack.adapters.slack_request_model_creator import (
 )
 from shared.gateways.psql import PsqlService
 from modules.stream_verifier.use_cases.get_detections_report import GetDetectionsReport
-from modules.stream_verifier.use_cases.get_stamp_classifications_report import GetStampClassificationsReport
+from modules.stream_verifier.use_cases.get_stamp_classifications_report import (
+    GetStampClassificationsReport,
+)
 
 
 class SlackContainer(containers.DeclarativeContainer):
@@ -28,9 +29,6 @@ class SlackContainer(containers.DeclarativeContainer):
     slack_client = providers.Singleton(
         WebClient, token=config.slack_bot.slack_credentials.token
     )
-    slack_signature_verifier = providers.Singleton(
-        SignatureVerifier, signing_secret=config.slack_bot.slack_credentials.signature
-    )
 
     # Main service
     stream_verifier = providers.Singleton(
@@ -43,7 +41,6 @@ class SlackContainer(containers.DeclarativeContainer):
     slack_exporter = providers.Factory(
         SlackExporter,
         client=slack_client,
-        signature_verifier=slack_signature_verifier,
     )
     slack_controller = providers.Factory(
         ReportController,
@@ -53,9 +50,9 @@ class SlackContainer(containers.DeclarativeContainer):
             detections_report=providers.Factory(
                 GetDetectionsReport, verifier=stream_verifier
             ),
-            stamp_classifications_report = providers.Factory(
-                GetStampClassificationsReport, verifier = stream_verifier
-            )
+            stamp_classifications_report=providers.Factory(
+                GetStampClassificationsReport, verifier=stream_verifier
+            ),
         ),
         request_model_creator=providers.Factory(SlackRequestModelCreator),
     )

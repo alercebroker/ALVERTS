@@ -3,14 +3,14 @@ from user_interface.adapters.presenter import ReportPresenter
 from modules.stream_verifier.infrastructure.response_models import (
     LagReportResponseModel,
     DetectionsReportResponseModel,
-    StampClassificationsReportResponseModel
+    StampClassificationsReportResponseModel,
 )
 from flask import Response
 from slack.web.client import WebClient
-from slack.signature.verifier import SignatureVerifier
 from typing import Union, List, NewType, Dict
 from datetime import datetime
 import tzlocal
+
 SlackParameters = NewType("SlackParameters", Dict[str, str])
 
 
@@ -18,11 +18,9 @@ class SlackExporter(ReportPresenter):
     def __init__(
         self,
         client: WebClient,
-        signature_verifier: SignatureVerifier,
         view: Union[Response, dict] = None,
     ):
         self.client = client
-        self.signature_verifier = signature_verifier
         self.view = view
 
     def set_view(
@@ -75,7 +73,9 @@ class SlackExporter(ReportPresenter):
             self.view.status_code = post_response.status_code
             self.view.data = text
 
-    def export_stamp_classifications_report(self, report: StampClassificationsReportResponseModel):
+    def export_stamp_classifications_report(
+        self, report: StampClassificationsReportResponseModel
+    ):
         try:
             text = self._parse_stamp_classifications_report_to_string(report)
         except Exception as e:
@@ -90,7 +90,6 @@ class SlackExporter(ReportPresenter):
             self.view["status_code"] = post_response.status_code
         else:
             self.view.status_code = post_response.status_code
-
 
     def handle_client_error(self, error: ClientException):
         message = f"Client Error: {error}"
@@ -159,24 +158,28 @@ class SlackExporter(ReportPresenter):
 
         return post_message
 
-    def _parse_stamp_classifications_report_to_string(self, report: StampClassificationsReportResponseModel):
+    def _parse_stamp_classifications_report_to_string(
+        self, report: StampClassificationsReportResponseModel
+    ):
         tz = tzlocal.get_localzone()
         today = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
-        post_message = f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t"""
-        
+        post_message = (
+            f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t"""
+        )
+
         for rep in report.databases:
             if len(rep.counts) == 0:
                 post_message += f"""• Database: {rep.database}\n\t• Host: {rep.host}\n\t:red_circle: No alerts today\n\t"""
-        
+
             else:
-                res = "" 
+                res = ""
                 for r in rep.counts:
                     res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
 
                 post_message += f"""• Database: {rep.database}\n\t• Host: {rep.host}\n\t• Objects observed last night: {rep.observed:>7} :night_with_stars:\n\t• New objects observed last night: {rep.new_objects:>7} :full_moon_with_face:\n\t• Stamp classifier distribution: \n {res}\t"""
-        
+
         return post_message
-        
+
     def post_to_slack(self, text: str):
         try:
             channels = self.slack_parameters.get("channel_names")

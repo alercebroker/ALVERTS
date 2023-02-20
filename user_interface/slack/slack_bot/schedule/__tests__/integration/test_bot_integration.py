@@ -28,7 +28,6 @@ def bot_fixture():
         "user_interface/slack/slack_bot/schedule/__tests__/settings.yml"
     )
     container.wire(modules=[sys.modules[bot.__name__]])
-    container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
     scheduled_bot: bot.ScheduledBot = bot.ScheduledBot()
     yield scheduled_bot, container
     container.unwire()
@@ -64,7 +63,6 @@ class TestStreamLagCheck:
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.lag_report()
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#test-bots",
@@ -112,7 +110,6 @@ class TestStreamLagCheck:
     def test_should_return_failed_report_and_post_to_slack(
         self, kafka_service, produce_from_avro, bot_fixture: BOT_FIXTURE
     ):
-
         container = bot_fixture[1]
         scheduled_bot = bot_fixture[0]
 
@@ -231,7 +228,6 @@ class TestDetectionsReport:
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.detections_report()
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#test-bots",
@@ -281,7 +277,6 @@ Topic test from localhost:9094 with group id test_detections_report_success proc
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.detections_report()
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#test-bots",
@@ -355,7 +350,6 @@ Topic test from localhost:9094 with group id test_detections_report_fail process
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.detections_report()
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#test-bots",
@@ -430,7 +424,6 @@ Topic test2 from localhost:9094 with group id test_detections_two_database_2 pro
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.detections_report()
         slack_client_mock.chat_postMessage.assert_called_with(
             channel="#test-bots",
@@ -486,13 +479,12 @@ Topic test2 from localhost:9094 with group id test_detections_two_database_2_che
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.detections_report()
         slack_client_mock.chat_postMessage.assert_not_called()
         assert response["status_code"] == 500
 
-class TestStampClassificationsReport:
 
+class TestStampClassificationsReport:
     def test_should_return_success_report_and_post_to_slack(
         self, psql_service, init_first_db, bot_fixture
     ):
@@ -524,12 +516,11 @@ class TestStampClassificationsReport:
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.stamp_classifications_report()
-        counts = [('class_1', 1)]
+        counts = [("class_1", 1)]
         res = ""
         for r in counts:
-           res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
+            res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
         tz = tzlocal.get_localzone()
         today = dt.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
         slack_client_mock.chat_postMessage.assert_called_with(
@@ -569,7 +560,6 @@ class TestStampClassificationsReport:
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.stamp_classifications_report()
         tz = tzlocal.get_localzone()
         today = dt.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
@@ -578,7 +568,7 @@ class TestStampClassificationsReport:
             text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t:red_circle: No alerts today\n\t""",
         )
         assert response["status_code"] == 200
-    
+
     def test_should_work_with_two_databases(
         self,
         psql_service,
@@ -625,12 +615,11 @@ class TestStampClassificationsReport:
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.stamp_classifications_report()
-        counts = [('class_1', 1)]
+        counts = [("class_1", 1)]
         res = ""
         for r in counts:
-           res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
+            res += f"\t\t\t - {r[0]:<8}: {r[1]:>7}\n"
         tz = tzlocal.get_localzone()
         today = dt.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
         slack_client_mock.chat_postMessage.assert_called_with(
@@ -638,7 +627,7 @@ class TestStampClassificationsReport:
             text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t• Objects observed last night: {1:>7} :night_with_stars:\n\t• New objects observed last night: {1:>7} :full_moon_with_face:\n\t• Stamp classifier distribution: \n {res}\t• Database: postgres\n\t• Host: localhost\n\t• Objects observed last night: {1:>7} :night_with_stars:\n\t• New objects observed last night: {1:>7} :full_moon_with_face:\n\t• Stamp classifier distribution: \n {res}\t""",
         )
         assert response["status_code"] == 200
-    
+
     def test_should_work_with_two_databases_no_alerts(
         self,
         psql_service,
@@ -685,7 +674,6 @@ class TestStampClassificationsReport:
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.stamp_classifications_report()
         tz = tzlocal.get_localzone()
         today = dt.now(tz).strftime("%Y-%m-%d %H:%M:%S %z")
@@ -694,7 +682,7 @@ class TestStampClassificationsReport:
             text=f""":astronaut: :page_facing_up: ALeRCE's report of today ({today}):\n\t• Database: postgres\n\t• Host: localhost\n\t:red_circle: No alerts today\n\t• Database: postgres\n\t• Host: localhost\n\t:red_circle: No alerts today\n\t""",
         )
         assert response["status_code"] == 200
-    
+
     def test_should_work_with_two_databases_wrong_db(
         self,
         psql_service,
@@ -738,7 +726,6 @@ class TestStampClassificationsReport:
         slack_client_mock = mock.MagicMock()
         slack_client_mock.chat_postMessage.return_value.status_code = 200
         container.slack_client.override(providers.Object(slack_client_mock))
-        container.slack_signature_verifier.override(providers.Factory(mock.MagicMock))
         response = scheduled_bot.stamp_classifications_report()
         slack_client_mock.chat_postMessage.assert_not_called()
         assert response["status_code"] == 500

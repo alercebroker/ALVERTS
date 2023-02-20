@@ -4,7 +4,6 @@ slack_bot:
   log_level: ${SLACK_BOT_LOG_LEVEL}
   slack_credentials:
     token: ${SLACK_BOT_TOKEN}
-    signature: ${SLACK_BOT_SIGNATURE}
   reports:
     - name: detections_report
       database:
