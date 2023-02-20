@@ -38,6 +38,6 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         context: .
-        file: ./user_interface/slack/slack_bot/Dockerfile.schedule
+        file: user_interface/slack/slack_bot/Dockerfile.schedule
         push: true
         tags: ${{ steps.prep.outputs.tags }}
