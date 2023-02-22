@@ -3,4 +3,4 @@ flask
 schedule
 slackclient
 tzlocal
-git+https://git@github.com/alercebroker/db-plugins#egg=db-plugins
+git+https://github.com/alercebroker/db-plugins.git
