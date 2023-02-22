@@ -65,16 +65,16 @@ slack_bot:
       channels:
         - test-bots
       times:
-        - ${SCHEDULE_LAG_REPORT_TIME}
+        - '${SCHEDULE_LAG_REPORT_TIME}'
     - period: every_day
       report: detections_report
       channels:
         - test-bots
       times:
-        - ${SCHEDULE_DETECTIONS_REPORT_TIME}
+        - '${SCHEDULE_DETECTIONS_REPORT_TIME}'
     - period: every_day
       report: stamp_classifications_report
       channels:
         - test-bots
       times:
-        - ${SCHEDULE_STAMP_REPORT_TIME}
+        - '${SCHEDULE_STAMP_REPORT_TIME}'
