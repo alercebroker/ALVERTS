@@ -31,7 +31,7 @@ slack_bot:
     - name: lag_report
       streams:
         - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
-          group_id: ${KAFKA_GROUP_ID_XMATCH}
+          group_id: ${KAFKA_GROUP_ID_SORTING_HAT}
           topic_format: ${KAFKA_SOURCE_TOPIC_FORMAT}
           date_format: ${KAFKA_SOURCE_DATE_FORMAT}
         - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
@@ -39,14 +39,17 @@ slack_bot:
           topic_format: ${KAFKA_SOURCE_TOPIC_FORMAT}
           date_format: ${KAFKA_SOURCE_DATE_FORMAT}
         - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
-          group_id: ${KAFKA_GROUP_ID_CORRECTION}
-          topic: ${KAFKA_TOPIC_XMATCH}
+          group_id: ${KAFKA_GROUP_ID_S3}
+          topic_format: ${KAFKA_SOURCE_TOPIC_FORMAT}
+          date_format: ${KAFKA_SOURCE_DATE_FORMAT}
         - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
-          group_id: ${KAFKA_GROUP_ID_FEATURE}
-          topic: ${KAFKA_TOPIC_CORRECTION}
+          group_id: ${KAFKA_GROUP_ID_ARCHIVE}
+          topic_format: ${KAFKA_SOURCE_TOPIC_FORMAT}
+          date_format: ${KAFKA_SOURCE_DATE_FORMAT}
         - bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS_PROD}
-          group_id: ${KAFKA_GROUP_ID_LC_CLASSIFIER}
-          topic: ${KAFKA_TOPIC_FEATURE}
+          group_id: ${KAFKA_GROUP_ID_WATCHLIST}
+          topic_format: ${KAFKA_SOURCE_TOPIC_FORMAT}
+          date_format: ${KAFKA_SOURCE_DATE_FORMAT}
     - name: stamp_classifications_report
       database:
         - host: ${DB_HOST_PROD}
@@ -62,19 +65,16 @@ slack_bot:
       channels:
         - test-bots
       times:
-        - '12:00'
-        - '16:00'
+        - ${SCHEDULE_LAG_REPORT_TIME}
     - period: every_day
       report: detections_report
       channels:
         - test-bots
       times:
-        - '16:00'
+        - ${SCHEDULE_DETECTIONS_REPORT_TIME}
     - period: every_day
       report: stamp_classifications_report
       channels:
         - test-bots
       times:
-        - '09:30'
-        - '11:30'
-        - '14:00'
+        - ${SCHEDULE_STAMP_REPORT_TIME}
