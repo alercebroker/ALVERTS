@@ -1,5 +1,5 @@
 dependency-injector[yaml]
 confluent-kafka==1.6.0
-fastavro
+fastavro>=0.22.0,<1.5.0
 git+https://github.com/alercebroker/db-plugins.git
 psycopg2-binary
