@@ -13,6 +13,12 @@ EXAMPLES_PATH = os.path.abspath(os.path.join(FILE_PATH, "./examples"))
 
 
 @pytest.fixture(scope="session")
+def docker_compose_command():
+    print("ENTRA")
+    return "docker-compose" if os.getenv("COMPOSE", "v2") == "v1" else "docker compose"
+
+
+@pytest.fixture(scope="session")
 def docker_compose_file(pytestconfig):
     return os.path.join(
         str(pytestconfig.rootdir),
@@ -185,7 +191,7 @@ def init_db(insert: bool, config: dict):
     db.connect(config)
     db.create_db()
     if insert:
-        obj = Object(oid="ZTF19aaapkto", firstmjd = 100000000, lastmjd = 100000000)
+        obj = Object(oid="ZTF19aaapkto", firstmjd=100000000, lastmjd=100000000)
         db.session.add(obj)
         det = Detection(
             candid=1000151433015015013,
@@ -205,12 +211,12 @@ def init_db(insert: bool, config: dict):
         )
         db.session.add(det)
         prob = Probability(
-            oid = "ZTF19aaapkto",
-            ranking = 1,
-            class_name = "class_1",
-            classifier_name = "stamp_classifier",
-            probability = 0.5,
-            classifier_version = "classifier_version_1",
+            oid="ZTF19aaapkto",
+            ranking=1,
+            class_name="class_1",
+            classifier_name="stamp_classifier",
+            probability=0.5,
+            classifier_version="classifier_version_1",
         )
         db.session.add(prob)
         db.session.commit()
@@ -237,7 +243,6 @@ def init_first_db():
     }
 
     def _init(insert: bool):
-
         init_db(insert, config)
 
     yield _init
@@ -260,7 +265,6 @@ def init_second_db():
     }
 
     def _init(insert: bool):
-
         init_db(insert, config)
 
     yield _init

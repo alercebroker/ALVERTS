@@ -265,7 +265,6 @@ Topic ztf_{date1}_test from localhost:9094 with group id bot_{date2} processed 0
         date = datetime.datetime.today()
         date1 = date.strftime("%Y%m%d")
         date2 = date.strftime("%Y%m%d%H%M%S")
-        print(slack_client_mock.chat_postMessage.mock_calls)
         slack_client_mock.chat_postMessage.assert_called_once_with(
             channel="#test-bots",
             text=f"""Detections Report Success
